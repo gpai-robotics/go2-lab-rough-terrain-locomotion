@@ -1,0 +1,116 @@
+--- git status ---
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	deleted:    deploy/thirdparty/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so.1
+	modified:   scripts/list_envs.py
+	modified:   scripts/rsl_rl/play.py
+	modified:   scripts/rsl_rl/train.py
+	modified:   source/trakr_rl/trakr_rl/tasks/locomotion/agents/rsl_rl_ppo_cfg.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	output.txt
+	source/trakr_rl/trakr_rl/assets/robots/trakr.py
+	source/trakr_rl/trakr_rl/tasks/locomotion/robots/trakr/
+
+no changes added to commit (use "git add" and/or "git commit -a") 
+
+
+--- git diff ---
+diff --git a/deploy/thirdparty/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so.1 b/deploy/thirdparty/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so.1
+deleted file mode 120000
+index b56b9ba..0000000
+--- a/deploy/thirdparty/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so.1
++++ /dev/null
+@@ -1 +0,0 @@
+-libonnxruntime.so.1.22.0
+\ No newline at end of file
+diff --git a/scripts/list_envs.py b/scripts/list_envs.py
+index 5324af9..f3caa88 100644
+--- a/scripts/list_envs.py
++++ b/scripts/list_envs.py
+@@ -87,7 +87,7 @@ def main():
+     index = 0
+     # acquire all Isaac environments names
+     for task_spec in gym.registry.values():
+-        if "Unitree" in task_spec.id and "Isaac" not in task_spec.id:
++        if ("Unitree" in task_spec.id or "Trakr" in task_spec.id) and "Isaac" not in task_spec.id:
+             # add details to table
+             table.add_row([index + 1, task_spec.id, task_spec.entry_point, task_spec.kwargs["env_cfg_entry_point"]])
+             # increment count
+diff --git a/scripts/rsl_rl/play.py b/scripts/rsl_rl/play.py
+index fd5ff85..7a4d1c3 100644
+--- a/scripts/rsl_rl/play.py
++++ b/scripts/rsl_rl/play.py
+@@ -56,7 +56,7 @@ import isaaclab_tasks  # noqa: F401
+ from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
+ from isaaclab.utils.assets import retrieve_file_path
+ from isaaclab.utils.dict import print_dict
+-from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
++# from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
+ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
+ from isaaclab_tasks.utils import get_checkpoint_path
+ 
+@@ -80,12 +80,12 @@ def main():
+     log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
+     log_root_path = os.path.abspath(log_root_path)
+     print(f"[INFO] Loading experiment from directory: {log_root_path}")
+-    if args_cli.use_pretrained_checkpoint:
+-        resume_path = get_published_pretrained_checkpoint("rsl_rl", args_cli.task)
+-        if not resume_path:
+-            print("[INFO] Unfortunately a pre-trained checkpoint is currently unavailable for this task.")
+-            return
+-    elif args_cli.checkpoint:
++    # if args_cli.use_pretrained_checkpoint:
++    #     resume_path = get_published_pretrained_checkpoint("rsl_rl", args_cli.task)
++    #     if not resume_path:
++    #         print("[INFO] Unfortunately a pre-trained checkpoint is currently unavailable for this task.")
++    #         return
++    if args_cli.checkpoint:
+         resume_path = retrieve_file_path(args_cli.checkpoint)
+     else:
+         resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
+diff --git a/scripts/rsl_rl/train.py b/scripts/rsl_rl/train.py
+index 28dae91..05c24f5 100644
+--- a/scripts/rsl_rl/train.py
++++ b/scripts/rsl_rl/train.py
+@@ -19,7 +19,7 @@ sys.path.pop(0)
+ 
+ tasks = []
+ for task_spec in gym.registry.values():
+-    if "Unitree" in task_spec.id and "Isaac" not in task_spec.id:
++    if ("Unitree" in task_spec.id or "Trakr" in task_spec.id) and "Isaac" not in task_spec.id:
+         tasks.append(task_spec.id)
+ 
+ import argparse
+diff --git a/source/trakr_rl/trakr_rl/tasks/locomotion/agents/rsl_rl_ppo_cfg.py b/source/trakr_rl/trakr_rl/tasks/locomotion/agents/rsl_rl_ppo_cfg.py
+index f5f98fb..16a0764 100644
+--- a/source/trakr_rl/trakr_rl/tasks/locomotion/agents/rsl_rl_ppo_cfg.py
++++ b/source/trakr_rl/trakr_rl/tasks/locomotion/agents/rsl_rl_ppo_cfg.py
+@@ -10,18 +10,18 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
+ @configclass
+ class BasePPORunnerCfg(RslRlOnPolicyRunnerCfg):
+     num_steps_per_env = 24
+-    max_iterations = 50000
++    max_iterations = 10000
+     save_interval = 100
+     experiment_name = ""  # same as task name
+     empirical_normalization = False
+     policy = RslRlPpoActorCriticCfg(
+         init_noise_std=1.0,
+-        actor_hidden_dims=[512, 256, 128],
+-        critic_hidden_dims=[512, 256, 128],
++        actor_hidden_dims=[256, 128, 64],
++        critic_hidden_dims=[256, 128, 64],
+         activation="elu",
+     )
+     algorithm = RslRlPpoAlgorithmCfg(
+-        value_loss_coef=1.0,
++        value_loss_coef=0.75,
+         use_clipped_value_loss=True,
+         clip_param=0.2,
+         entropy_coef=0.01,

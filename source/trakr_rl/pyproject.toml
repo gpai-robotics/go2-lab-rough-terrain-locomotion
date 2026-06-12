@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "wheel", "toml"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trakr_rl"
+version = "0.2.1"
+description = "Reinforcement Learning for Trakr"
+dependencies = [
+    "argcomplete",
+]
+requires-python = ">=3.10"
+license = { text = "Apache 2.0" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux"
+]
+dynamic = []
