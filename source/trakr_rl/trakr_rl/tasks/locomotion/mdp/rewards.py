@@ -9,7 +9,7 @@ except ImportError:
     from isaaclab.utils.math import quat_rotate_inverse as quat_apply_inverse
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.sensors import ContactSensor
+from isaaclab.sensors import ContactSensor, RayCaster
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -91,9 +91,7 @@ def move_forward(
     vel_xy = asset.data.root_lin_vel_b[:, :2]
     vel_along_cmd = torch.sum(vel_xy * cmd_dir, dim=1)
 
-    reward = 1.0 * torch.exp(5*((vel_along_cmd/1.5) - 1.0))
-
-    return torch.where(cmd_mag > 0.1, reward , torch.zeros_like(reward))
+    return torch.where(cmd_mag > 0.1, vel_along_cmd , torch.zeros_like(vel_along_cmd))
 
 """
 Feet rewards.
@@ -145,6 +143,46 @@ def foot_clearance_reward(
     foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2], dim=2))
     reward = foot_z_target_error * foot_velocity_tanh
     return torch.exp(-torch.sum(reward, dim=1) / std)
+
+
+def lifting_foot_height_reward(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    sensor_cfg: SceneEntityCfg,
+    height_sensor_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner"),
+    clearance_threshold: float = 0.02,
+    sample_radius: float = 0.12,
+) -> torch.Tensor:
+    """Penalize swing-foot clearance above nearby terrain"""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    height_sensor: RayCaster = env.scene.sensors[height_sensor_cfg.name]
+
+    foot_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
+    foot_xy = foot_pos_w[:, :, :2]
+    foot_z = foot_pos_w[:, :, 2]
+
+    terrain_hits_w = height_sensor.data.ray_hits_w
+    terrain_xy = terrain_hits_w[:, :, :2]
+    terrain_z = terrain_hits_w[:, :, 2]
+
+    foot_to_hit_xy = foot_xy.unsqueeze(2) - terrain_xy.unsqueeze(1)
+    hit_dist_xy = torch.linalg.norm(foot_to_hit_xy, dim=-1)
+    local_hit_mask = hit_dist_xy <= sample_radius
+
+    nearest_hit_idx = torch.argmin(hit_dist_xy, dim=-1)
+    nearest_hit_z = torch.gather(terrain_z, 1, nearest_hit_idx)
+
+    masked_terrain_z = terrain_z.unsqueeze(1).masked_fill(~local_hit_mask, float("-inf"))
+    local_terrain_z = masked_terrain_z.max(dim=-1).values
+    has_local_hits = local_hit_mask.any(dim=-1)
+    local_terrain_z = torch.where(has_local_hits, local_terrain_z, nearest_hit_z)
+
+    swing_mask = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] <= 0.0
+    foot_clearance = foot_z - local_terrain_z
+    excess_clearance = torch.clamp(foot_clearance - clearance_threshold, min=0.0)
+
+    return -torch.sum(excess_clearance * swing_mask.float(), dim=1)
 
 
 def feet_too_near(

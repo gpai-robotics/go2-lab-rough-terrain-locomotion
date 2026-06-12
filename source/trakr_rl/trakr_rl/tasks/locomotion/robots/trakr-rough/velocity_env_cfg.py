@@ -37,7 +37,7 @@ COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
             proportion=0.1, noise_range=(0.05, 0.12), noise_step=0.01, border_width=0.25
         ),
         "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
-            proportion=0.1, slope_range=(0.5, 0.7), platform_width=2.0, border_width=0.25
+            proportion=0.1, slope_range=(0.5, 0.6), platform_width=2.0, border_width=0.25
         ),
         # "hf_pyramid_slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
         #     proportion=0.1, slope_range=(0.0, 0.4), platform_width=2.0, border_width=0.25
@@ -195,10 +195,10 @@ class CommandsCfg:
         rel_standing_envs=0.1,
         debug_vis=True,
         ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.5), ang_vel_z=(0.0, 0.0)
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.0), ang_vel_z=(0.0, 0.0)
         ),
         limit_ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.5), ang_vel_z=(0.0, 0.0)
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.0), ang_vel_z=(0.0, 0.0)
         ),
     )
 
@@ -233,7 +233,7 @@ class ObservationsCfg:
         last_action = ObsTerm(func=mdp.last_action, clip=(-100, 100))
 
         def __post_init__(self):
-            # self.history_length = 5
+            self.history_length = 5
             self.enable_corruption = True
             self.concatenate_terms = True
 
@@ -254,10 +254,10 @@ class ObservationsCfg:
         joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.05, clip=(-100, 100))
         joint_effort = ObsTerm(func=mdp.joint_effort, scale=0.01, clip=(-100, 100))
         last_action = ObsTerm(func=mdp.last_action, clip=(-100, 100))
-        # height_scanner = ObsTerm(func=mdp.height_scan,
-        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
-        #     clip=(-1.0, 5.0),
-        # )
+        height_scanner = ObsTerm(func=mdp.height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+            clip=(-1.0, 5.0),
+        )
 
         # def __post_init__(self):
         #     self.history_length = 5
@@ -324,6 +324,10 @@ class RewardsCfg:
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
         },
+    )
+
+    stand_still = RewTerm(
+        func = mdp.stand_still, weight=-1
     )
     # feet_contact_forces = RewTerm(
     #     func=mdp.contact_forces,
@@ -412,6 +416,6 @@ class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.num_envs = 8
-        self.scene.terrain.terrain_generator.num_rows = 4
-        self.scene.terrain.terrain_generator.num_cols = 4
+        self.scene.terrain.terrain_generator.num_rows = 3
+        self.scene.terrain.terrain_generator.num_cols = 3
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges
