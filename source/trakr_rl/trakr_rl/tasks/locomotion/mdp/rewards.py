@@ -76,23 +76,23 @@ def joint_position_penalty(
     return torch.where(torch.logical_or(cmd > 0.0, body_vel > velocity_threshold), reward, stand_still_scale * reward)
 
 
-def move_forward(
-    env: ManagerBasedRLEnv, command_name: str = "base_velocity", asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-) -> torch.Tensor:
-    """Exponentially Growing Reward encouraging the robot to move forward."""
-
+def still_penalty(
+        env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, command_name: str = "base_velocity"
+):
+    "Penalizes the bot for standing still when non-zero command velocity is given"
     asset: Articulation = env.scene[asset_cfg.name]
-    cmd = env.command_manager.get_command(command_name)
-    cmd_xy = cmd[:, :2]
+    cmd = torch.linalg.norm(env.command_manager.get_command(command_name), dim=1)
+    body_pos =torch.linalg.norm(asset.data.root_link_pos_w[:, 1],)
+    return torch.where(torch.logical_and(cmd > 0.0, body_pos < 0.1), 1.0, 0.0)
 
-    cmd_mag = torch.linalg.norm(cmd_xy, dim=1) 
-    cmd_dir = cmd_xy / (cmd_mag.unsqueeze(1) + 1e-6)
-
-    vel_xy = asset.data.root_lin_vel_b[:, :2]
-    vel_along_cmd = torch.sum(vel_xy * cmd_dir, dim=1)
-
-    return torch.where(cmd_mag > 0.1, vel_along_cmd , torch.zeros_like(vel_along_cmd))
-
+def pitch_rate_penalty(
+        env:ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    "Penalizes high pitch rate for robot, to prevent it from toppling forwards"
+    asset: Articulation = env.scene[asset_cfg.name]
+    omega = asset.data.root_ang_vel_b
+    pitch_rate = omega[:, 1]
+    return torch.square(pitch_rate)
 """
 Feet rewards.
 """
@@ -109,28 +109,27 @@ def feet_stumble(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Te
 
 
 def feet_height_body(
-    env: ManagerBasedRLEnv,
-    command_name: str,
-    asset_cfg: SceneEntityCfg,
-    target_height: float,
-    tanh_mult: float,
+    env: ManagerBasedRLEnv, command_name: str, target_height: float, tanh_mult: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot", body_names=["LB_knee", "LF_knee", "RB_knee", "RF_knee"])
 ) -> torch.Tensor:
     """Reward the swinging feet for clearing a specified height off the ground"""
     asset: RigidObject = env.scene[asset_cfg.name]
     cur_footpos_translated = asset.data.body_pos_w[:, asset_cfg.body_ids, :] - asset.data.root_pos_w[:, :].unsqueeze(1)
-    footpos_in_body_frame = torch.zeros(env.num_envs, len(asset_cfg.body_ids), 3, device=env.device)
     cur_footvel_translated = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :] - asset.data.root_lin_vel_w[
         :, :
     ].unsqueeze(1)
-    footvel_in_body_frame = torch.zeros(env.num_envs, len(asset_cfg.body_ids), 3, device=env.device)
-    for i in range(len(asset_cfg.body_ids)):
-        footpos_in_body_frame[:, i, :] = quat_apply_inverse(asset.data.root_quat_w, cur_footpos_translated[:, i, :])
-        footvel_in_body_frame[:, i, :] = quat_apply_inverse(asset.data.root_quat_w, cur_footvel_translated[:, i, :])
+    num_bodies = cur_footpos_translated.shape[1]
+    root_quat = asset.data.root_quat_w.unsqueeze(1).expand(-1, num_bodies, -1).reshape(-1, 4)
+    footpos_in_body_frame = quat_apply_inverse(root_quat, cur_footpos_translated.reshape(-1, 3)).reshape(
+        env.num_envs, num_bodies, 3
+    )
+    footvel_in_body_frame = quat_apply_inverse(root_quat, cur_footvel_translated.reshape(-1, 3)).reshape(
+        env.num_envs, num_bodies, 3
+    )
     foot_z_target_error = torch.square(footpos_in_body_frame[:, :, 2] - target_height).view(env.num_envs, -1)
     foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(footvel_in_body_frame[:, :, :2], dim=2))
-    reward = torch.sum(foot_z_target_error * foot_velocity_tanh, dim=1)
+    reward = torch.sum(foot_z_target_error *     foot_velocity_tanh, dim=1)
     reward *= torch.linalg.norm(env.command_manager.get_command(command_name), dim=1) > 0.1
-    reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
+    # reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
     return reward
 
 
@@ -143,47 +142,6 @@ def foot_clearance_reward(
     foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2], dim=2))
     reward = foot_z_target_error * foot_velocity_tanh
     return torch.exp(-torch.sum(reward, dim=1) / std)
-
-
-def lifting_foot_height_reward(
-    env: ManagerBasedRLEnv,
-    asset_cfg: SceneEntityCfg,
-    sensor_cfg: SceneEntityCfg,
-    height_sensor_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner"),
-    clearance_threshold: float = 0.02,
-    sample_radius: float = 0.12,
-) -> torch.Tensor:
-    """Penalize swing-foot clearance above nearby terrain"""
-    asset: RigidObject = env.scene[asset_cfg.name]
-    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    height_sensor: RayCaster = env.scene.sensors[height_sensor_cfg.name]
-
-    foot_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
-    foot_xy = foot_pos_w[:, :, :2]
-    foot_z = foot_pos_w[:, :, 2]
-
-    terrain_hits_w = height_sensor.data.ray_hits_w
-    terrain_xy = terrain_hits_w[:, :, :2]
-    terrain_z = terrain_hits_w[:, :, 2]
-
-    foot_to_hit_xy = foot_xy.unsqueeze(2) - terrain_xy.unsqueeze(1)
-    hit_dist_xy = torch.linalg.norm(foot_to_hit_xy, dim=-1)
-    local_hit_mask = hit_dist_xy <= sample_radius
-
-    nearest_hit_idx = torch.argmin(hit_dist_xy, dim=-1)
-    nearest_hit_z = torch.gather(terrain_z, 1, nearest_hit_idx)
-
-    masked_terrain_z = terrain_z.unsqueeze(1).masked_fill(~local_hit_mask, float("-inf"))
-    local_terrain_z = masked_terrain_z.max(dim=-1).values
-    has_local_hits = local_hit_mask.any(dim=-1)
-    local_terrain_z = torch.where(has_local_hits, local_terrain_z, nearest_hit_z)
-
-    swing_mask = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] <= 0.0
-    foot_clearance = foot_z - local_terrain_z
-    excess_clearance = torch.clamp(foot_clearance - clearance_threshold, min=0.0)
-
-    return -torch.sum(excess_clearance * swing_mask.float(), dim=1)
-
 
 def feet_too_near(
     env: ManagerBasedRLEnv, threshold: float = 0.2, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -238,6 +196,14 @@ def air_time_variance_penalty(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg
     return torch.var(torch.clip(last_air_time, max=0.5), dim=1) + torch.var(
         torch.clip(last_contact_time, max=0.5), dim=1
     )
+
+def roll_penalty(
+        env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+):
+    """Penalize roll angle of the robot."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    roll = asset.data.projected_gravity_b[:, 0]
+    return torch.pow(roll, 2)
 
 
 """

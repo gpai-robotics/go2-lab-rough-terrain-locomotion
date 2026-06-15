@@ -233,7 +233,7 @@ class ObservationsCfg:
         last_action = ObsTerm(func=mdp.last_action, clip=(-100, 100))
 
         def __post_init__(self):
-            # self.history_length = 5
+            self.history_length = 5
             self.enable_corruption = True
             self.concatenate_terms = True
 
@@ -259,8 +259,8 @@ class ObservationsCfg:
         #     clip=(-1.0, 5.0),
         # )
 
-        # def __post_init__(self):
-        #     self.history_length = 5
+        def __post_init__(self):
+            self.history_length = 5
 
     # privileged observations
     critic: CriticCfg = CriticCfg()
@@ -272,7 +272,7 @@ class RewardsCfg:
 
     # -- task
     track_lin_vel_xy = RewTerm(
-        func=mdp.track_lin_vel_xy_exp, weight=1.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_lin_vel_xy_exp, weight=3.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.75, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
@@ -286,10 +286,12 @@ class RewardsCfg:
     joint_torques = RewTerm(func=mdp.joint_torques_l2, weight=-2e-4)
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-10.0)
-    energy = RewTerm(func=mdp.energy, weight=-2e-5)
+    energy = RewTerm(func=mdp.energy, weight=-2e-4)
 
     # -- robot
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-2.5)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-3.0)
+
+    roll_penalty = RewTerm(func=mdp.roll_penalty, weight=-2.0)
 
     joint_pos = RewTerm(
         func=mdp.joint_position_penalty,
@@ -304,7 +306,7 @@ class RewardsCfg:
     # -- feet
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.1,
+        weight=0.75,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
             "command_name": "base_velocity",
@@ -325,8 +327,6 @@ class RewardsCfg:
         },
     )
 
-    stand_still = RewTerm(
-        func=mdp.stand_still, weight=-1)
     # feet_contact_forces = RewTerm(
     #     func=mdp.contact_forces,
     #     weight=-0.02,
