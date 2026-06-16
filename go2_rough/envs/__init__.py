@@ -1,1 +1,1 @@
-"""Rough-terrain environment configs for the first C1 extraction."""
+"""Environment configs for the public Go2 rough locomotion path."""

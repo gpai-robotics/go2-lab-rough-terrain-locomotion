@@ -1,94 +1,53 @@
 # Architecture
 
-This repo contains one teacher path and one student path.
+## Policy Type
 
-## System View
+This repo publishes a blind rough-terrain asymmetric PPO controller for Go2.
 
-```text
-deployable policy observations
-        + history window
-                |
-                v
-     blind history-conditioned student
-                |
-                v
-             actions
-```
+The actor is directly deployable. The critic gets extra information only to make
+PPO training easier.
 
-During training only, the student is guided by a privileged teacher:
+## Actor
 
-```text
-deployable observations
-    + privileged dynamics
-    + privileged terrain
-            |
-            v
-   privileged rough-terrain teacher
-            |
-            v
-   supervision signal for student
-```
+The actor receives deployable signals only:
 
-## Repo Boundary
+- base angular velocity
+- projected gravity
+- commanded velocity
+- joint position relative to default pose
+- joint velocity
+- previous action
+- flattened history of the same terms
 
-IsaacLab provides:
+The actor does not receive:
 
-- simulator infrastructure
-- environment plumbing
-- RL integration surface
+- base linear velocity
+- height scan
+- terrain class
+- friction
+- mass
+- motor scale
 
-This repo provides:
+## Critic
 
-- the extracted rough-terrain task configs
-- the teacher and student model definitions
-- training scripts
-- export and validation scripts
+The critic receives the actor inputs plus privileged signals:
 
-## Teacher
+- base linear velocity
+- terrain height scan
+- tracked static and dynamic friction
+- tracked base mass ratio
+- joint stiffness and damping scale
 
-The teacher is a privileged rough-terrain controller.
+These privileged signals are training-only.
 
-Its role is to use richer training-time information to learn a stronger control
-policy and shape the student toward that behavior.
+## Why This Shape
 
-The teacher path matters because terrain and hidden-dynamics information are
-available during training and not at inference.
+The design keeps deployment simple and measurable:
 
-## Student
+- no latent estimator at runtime
+- no online adaptation module
+- no exteroceptive terrain sensing
+- one actor path that can be exported and deployed directly
 
-The student is the main deployed policy.
-
-Runtime contract:
-
-- `policy_obs [48]`
-- `policy_history [4800]`
-- `action [12]`
-
-That is equivalent to:
-
-- current deployable observation
-- 100-step history buffer at 50 Hz
-- 12 joint actions
-
-## Why The Student Is History-Conditioned
-
-The history path is the point.
-
-The student is built around the idea that temporal context helps with:
-
-- disturbances
-- hidden mismatch
-- recovery after transients
-
-without requiring privileged inputs at inference.
-
-## Design Intent
-
-The design goal was not to maximize architectural novelty.
-
-The design goal was to keep this repo:
-
-- deployable
-- inspectable
-- exportable
-- small enough to understand quickly
+Robustness is expected to come primarily from terrain diversity, command
+diversity, dynamics randomization, action history, and push disturbance training.

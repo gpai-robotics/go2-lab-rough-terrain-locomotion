@@ -1,1 +1,1 @@
-"""Model components for the first C1 extraction."""
+"""Model configs for the public Go2 rough locomotion path."""

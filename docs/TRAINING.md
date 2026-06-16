@@ -1,94 +1,64 @@
 # Training
 
-This repo keeps the training story intentionally small.
+## Stage 1: Flat Prior
 
-## Published Paths
-
-Two tasks matter in this repo:
-
-- `RMA-Go2-PrivilegedTeacher-Rough-StageA`
-- `RMA-Go2-BlindHistory-Rough-StageA`
-
-The teacher is trained first. The student is then trained with that teacher as
-its privileged reference during training.
-
-## Teacher
-
-The teacher is the privileged rough-terrain controller.
-
-Its role is:
-
-- consume deployable policy observations
-- consume privileged dynamics and terrain information during training
-- learn a strong rough-terrain control prior
-- provide supervision pressure for the blind student
-
-The teacher matters because it exposes terrain and hidden-dynamics information
-during training while the student remains blind at inference.
-
-## Student
-
-The student is the main deployed artifact in this repo.
-
-Its runtime contract is blind:
-
-- current deployable observations
-- a fixed window of deployable history
-
-It does not receive terrain or dynamics privilege at inference.
-
-During training, the student is shaped by:
-
-- teacher guidance
-- explicit history-path usage
-- a deployment-facing observation contract
-
-## Why History Matters
-
-The point of the student is not just "blind locomotion."
-
-The stronger claim is:
-
-- the history pathway is behaviorally load-bearing
-- especially under temporal robustness probes such as pushes and hidden changes
-
-That is why this repo keeps a history-conditioned student instead of collapsing
-to a stateless blind policy.
-
-## Training Entry Points
-
-- `scripts/train_teacher.py`
-- `scripts/train_student.py`
-
-Typical flow:
+Train a flat omnidirectional prior under the same deployable actor observation
+contract used by the rough policy:
 
 ```bash
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_teacher.py --headless
+export ISAACLAB_ROOT=/path/to/IsaacLab
+export GO2_USD_PATH=/path/to/go2.usd
 
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_student.py \
-  --teacher-checkpoint artifacts/checkpoints/teacher_stagea.pt \
+$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_flat_prior.py --headless
+```
+
+The flat prior is used only as an actor warmstart. It is not deployed as the
+rough-terrain controller.
+
+## Stage 2: Rough AsymPPO
+
+Train the rough policy:
+
+```bash
+$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py \
+  --flat-prior-checkpoint /path/to/flat_prior_checkpoint.pt \
   --headless
 ```
 
-Optional student knobs exposed by the script:
+If you do not want warmstart:
 
-- `--num-envs`
-- `--max-iterations`
-- `--seed`
-- `--log-dir`
-- `--teacher-checkpoint`
-- `--blind-warmstart`
+```bash
+$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py --headless
+```
 
-## Checkpoint Policy
+## Important Ranges
 
-The repo does not currently ship frozen weights inside version control.
+Command curriculum target:
 
-So there are two valid workflows here:
+```text
+vx:  [-0.8, 0.8] m/s
+vy:  [-0.3, 0.3] m/s
+yaw: [-0.6, 0.6] rad/s
+```
 
-1. train teacher and student from scratch
-2. supply checkpoints from your own workspace
+Motor gain randomization:
 
-If you are following the export or evaluation flow, make sure the checkpoint
-paths you pass actually exist in your local workspace.
+```text
+stiffness scale: [0.6, 1.4]
+damping scale:   [0.6, 1.4]
+```
 
-The repo surface is meant to stay understandable by a new reader in one pass.
+Push disturbance:
+
+```text
+interval: 6-10 s
+vx impulse command:  [-0.35, 0.35]
+vy impulse command:  [-0.35, 0.35]
+yaw impulse command: [-0.4, 0.4]
+```
+
+## Notes
+
+The successful branch did not rely on extreme gain randomization. Wider gain
+randomization hurt learning in our tests, so this public path keeps the narrower
+deployment-proven envelope.
