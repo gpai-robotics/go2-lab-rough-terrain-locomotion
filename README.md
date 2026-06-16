@@ -1,5 +1,15 @@
 # Go2 Lab Rough Terrain Locomotion
 
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=oOYZdeQDaec">
+    <img src="assets/hero_asymppo_deployment.svg" alt="Go2 blind rough-terrain AsymPPO deployment video" width="100%">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=oOYZdeQDaec"><strong>Watch the real Go2 deployment video</strong></a>
+</p>
+
 Clean public release of the successful Unitree Go2 blind rough-terrain
 locomotion path.
 
@@ -123,8 +133,9 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Demo Media
 
-The public media lane should show the active AsymPPO/MuJoCo path only. Do not
-reuse media from older experimental branches under this repo.
+The top banner links to the real hardware deployment video. The public media
+lane should show the active AsymPPO/MuJoCo path only. Do not reuse media from
+older experimental branches under this repo.
 
 If a clip is added, place it under:
 
