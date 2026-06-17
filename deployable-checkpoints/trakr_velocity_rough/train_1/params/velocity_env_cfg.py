@@ -37,7 +37,7 @@ COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
             proportion=0.1, noise_range=(0.05, 0.12), noise_step=0.01, border_width=0.25
         ),
         "hf_pyramid_slope": terrain_gen.HfPyramidSlopedTerrainCfg(
-            proportion=0.1, slope_range=(0.5, 0.6), platform_width=2.0, border_width=0.25
+            proportion=0.1, slope_range=(0.5, 0.7), platform_width=2.0, border_width=0.25
         ),
         # "hf_pyramid_slope_inv": terrain_gen.HfInvertedPyramidSlopedTerrainCfg(
         #     proportion=0.1, slope_range=(0.0, 0.4), platform_width=2.0, border_width=0.25
@@ -47,20 +47,20 @@ COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
         # ),
         "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
             proportion=0.2,
-            step_height_range=(0.08, 0.15),
+            step_height_range=(0.05, 0.23),
             step_width=0.3,
             platform_width=3.0,
             border_width=1.0,
             holes=False,
         ),
-        "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-            proportion=0.2,
-            step_height_range=(0.08, 0.15),
-            step_width=0.3,
-            platform_width=3.0,
-            border_width=1.0,
-            holes=False,
-        ),
+        # "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+        #     proportion=0.2,
+        #     step_height_range=(0.05, 0.23),
+        #     step_width=0.3,
+        #     platform_width=3.0,
+        #     border_width=1.0,
+        #     holes=False,
+        # ),
     },
 )
 
@@ -195,10 +195,10 @@ class CommandsCfg:
         rel_standing_envs=0.1,
         debug_vis=True,
         ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.0), ang_vel_z=(0.0, 0.0)
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.5), ang_vel_z=(0.0, 0.0)
         ),
         limit_ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.0), ang_vel_z=(0.0, 0.0)
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.5), ang_vel_z=(0.0, 0.0)
         ),
     )
 
@@ -233,7 +233,7 @@ class ObservationsCfg:
         last_action = ObsTerm(func=mdp.last_action, clip=(-100, 100))
 
         def __post_init__(self):
-            self.history_length = 5
+            # self.history_length = 5
             self.enable_corruption = True
             self.concatenate_terms = True
 
@@ -259,8 +259,8 @@ class ObservationsCfg:
         #     clip=(-1.0, 5.0),
         # )
 
-        def __post_init__(self):
-            self.history_length = 5
+        # def __post_init__(self):
+        #     self.history_length = 5
 
     # privileged observations
     critic: CriticCfg = CriticCfg()
@@ -272,7 +272,7 @@ class RewardsCfg:
 
     # -- task
     track_lin_vel_xy = RewTerm(
-        func=mdp.track_lin_vel_xy_exp, weight=4.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_lin_vel_xy_exp, weight=1.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.75, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
@@ -284,23 +284,17 @@ class RewardsCfg:
     joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
     joint_acc = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     joint_torques = RewTerm(func=mdp.joint_torques_l2, weight=-2e-4)
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.05)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-10.0)
     energy = RewTerm(func=mdp.energy, weight=-2e-5)
+    move_forward = RewTerm(func=mdp.move_forward, weight=0.5)
 
     # -- robot
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-1.5)
-
-    roll_penalty = RewTerm(func=mdp.roll_penalty, weight=-2.0)
-
-    pitch_penalty = RewTerm(
-        func = mdp.pitch_rate_penalty,
-        weight = -2.0
-    )
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-2.5)
 
     joint_pos = RewTerm(
         func=mdp.joint_position_penalty,
-        weight=-2.00,
+        weight=-0.7,
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "stand_still_scale": 5.0,
@@ -311,38 +305,24 @@ class RewardsCfg:
     # -- feet
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.5,
+        weight=0.1,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
             "command_name": "base_velocity",
             "threshold": 0.5,
         },
     )
-
     air_time_variance = RewTerm(
         func=mdp.air_time_variance_penalty,
-        weight=-0.75,
+        weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe")},
     )
-
     feet_slide = RewTerm(
         func=mdp.feet_slide,
         weight=-0.1,
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-        },
-    )
-
-    
-    feet_height_body = RewTerm(
-        func=mdp.feet_height_body,
-        weight=-2.0,
-        params={
-            "command_name": "base_velocity",
-            "target_height": 0.15,
-            "tanh_mult": 8.0,
-            "asset_cfg": SceneEntityCfg("robot", body_names=[".*_toe"]),
         },
     )
     # feet_contact_forces = RewTerm(
@@ -357,7 +337,7 @@ class RewardsCfg:
     # -- other
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-2.0,
+        weight=-1,
         params={
             "threshold": 1,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_hip", ".*_thigh", ".*_shank"]), # updated to match the trakr_imu.usd file --> found the PhysicsRevoluteJoints (bascially the DOFs) from the Stage in IsaacSim and checked if they have a contact reporter API
@@ -390,7 +370,7 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
-    scene: RobotSceneCfg = RobotSceneCfg(num_envs=2048, env_spacing=2.5)  #increased num_envs from 512 to 2048 for 
+    scene: RobotSceneCfg = RobotSceneCfg(num_envs=512, env_spacing=4)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -431,7 +411,7 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
 class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs = 4
+        self.scene.num_envs = 8
         self.scene.terrain.terrain_generator.num_rows = 4
         self.scene.terrain.terrain_generator.num_cols = 4
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges

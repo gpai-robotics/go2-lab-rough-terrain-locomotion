@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 *.egg-info/
 assets/clips/raw_c1/
+
+outputs/
+
+logs/
