@@ -78,6 +78,10 @@ case "$1" in
         shift
         ${python_exe} ${TRAKR_RL_PATH}/scripts/rsl_rl/train.py --headless "$@"
         ;;
+    -te|--teleop)
+        shift
+        ${python_exe} ${TRAKR_RL_PATH}/scripts/rsl_rl/teleop.py "$@"
+        ;;
     *) # unknown option
         ;;
 esac
