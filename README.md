@@ -53,8 +53,13 @@ export ISAACLAB_ROOT=/path/to/IsaacLab
 export GO2_USD_PATH=/path/to/go2.usd
 
 cd go2-lab-rough-terrain-locomotion
-$ISAACLAB_ROOT/_isaac_sim/python.sh -m pip install -e .
+$ISAACLAB_ROOT/_isaac_sim/python.sh -m pip install --user --no-deps -e .
 ```
+
+Do not install this package with dependency resolution enabled inside the Isaac
+Sim Python. IsaacLab already provides the compatible `torch`, CUDA and
+`gymnasium` stack. Installing this repo with normal dependency resolution can
+pull a different PyTorch/NCCL build into `~/.local` and break IsaacLab imports.
 
 Check task registration:
 
@@ -65,7 +70,9 @@ $ISAACLAB_ROOT/isaaclab.sh -p scripts/check_tasks.py
 Train the flat prior:
 
 ```bash
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_flat_prior.py --headless
+$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_flat_prior.py \
+  --headless \
+  --log-dir ~/isaaclab_logs/go2_flat_mjlab_prior_v1
 ```
 
 Train the rough AsymPPO policy, optionally warm-started from the flat prior:
@@ -73,8 +80,11 @@ Train the rough AsymPPO policy, optionally warm-started from the flat prior:
 ```bash
 $ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py \
   --flat-prior-checkpoint /path/to/flat_prior_checkpoint.pt \
-  --headless
+  --headless \
+  --log-dir ~/isaaclab_logs/go2_blind_rough_asymppo_mjlab_v1
 ```
+
+There should be no standalone `/` between arguments.
 
 ## Active Tasks
 

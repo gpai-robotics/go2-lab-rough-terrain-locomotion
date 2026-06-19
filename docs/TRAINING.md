@@ -9,7 +9,11 @@ contract used by the rough policy:
 export ISAACLAB_ROOT=/path/to/IsaacLab
 export GO2_USD_PATH=/path/to/go2.usd
 
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_flat_prior.py --headless
+$ISAACLAB_ROOT/_isaac_sim/python.sh -m pip install --user --no-deps -e .
+
+$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_flat_prior.py \
+  --headless \
+  --log-dir ~/isaaclab_logs/go2_flat_mjlab_prior_v1
 ```
 
 The flat prior is used only as an actor warmstart. It is not deployed as the
@@ -22,14 +26,34 @@ Train the rough policy:
 ```bash
 $ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py \
   --flat-prior-checkpoint /path/to/flat_prior_checkpoint.pt \
-  --headless
+  --headless \
+  --log-dir ~/isaaclab_logs/go2_blind_rough_asymppo_mjlab_v1
 ```
 
 If you do not want warmstart:
 
 ```bash
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py --headless
+$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py \
+  --headless \
+  --log-dir ~/isaaclab_logs/go2_blind_rough_asymppo_mjlab_v1
 ```
+
+Do not add a standalone `/` between command arguments. It will be parsed as an
+unknown argument by the training script.
+
+## IsaacLab Dependency Boundary
+
+This repository does not vendor or pin PyTorch. IsaacLab/Isaac Sim provides the
+compatible `torch`, CUDA and `gymnasium` stack. Install this package into Isaac
+Sim Python with:
+
+```bash
+$ISAACLAB_ROOT/_isaac_sim/python.sh -m pip install --user --no-deps -e .
+```
+
+Do not run plain `pip install -e .` if `pyproject.toml` has dependencies added
+locally. Pulling a different PyTorch/NCCL build into `~/.local` can cause errors
+such as `libtorch_cuda.so: undefined symbol: ncclCommResume`.
 
 ## Important Ranges
 

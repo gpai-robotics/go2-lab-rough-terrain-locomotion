@@ -8,10 +8,7 @@ version = "0.1.0"
 description = "Blind rough-terrain asymmetric PPO locomotion for Unitree Go2."
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-  "gymnasium",
-  "torch",
-]
+dependencies = []
 
 [tool.setuptools.packages.find]
 where = ["."]

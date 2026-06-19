@@ -43,9 +43,10 @@ def main() -> None:
     if args_cli.max_iterations is not None:
         runner_cfg.max_iterations = int(args_cli.max_iterations)
 
+    env_cfg.sim.log_dir = str(Path(args_cli.log_dir).expanduser() / "isaaclab")
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
     env = RslRlVecEnvWrapper(env, clip_actions=runner_cfg.clip_actions)
-    log_dir = Path(args_cli.log_dir)
+    log_dir = Path(args_cli.log_dir).expanduser()
     log_dir.mkdir(parents=True, exist_ok=True)
     runner = OnPolicyRunner(env, runner_cfg.to_dict(), log_dir=str(log_dir), device=runner_cfg.device)
     runner.learn(num_learning_iterations=runner_cfg.max_iterations)
