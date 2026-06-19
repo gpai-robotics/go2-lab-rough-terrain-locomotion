@@ -11,6 +11,39 @@ The original authors and upstream project are:
 This repo adapts that structure and training flow for the Trakr robot and its
 locomotion tasks.
 
+
+# Multi-Terrain Demonstration
+
+<table>
+<tr>
+<td align="center" width="50%">
+<img src="assets/videos/rl-video-step-0 (2).gif" width="100%"></video>
+<br><br>
+<b>Flat Terrain Omnidirectional Locomotion</b>
+</td>
+
+<td align="center" width="50%">
+<img src="assets/videos/rl-video-step-0 (2).gif" width="100%"></video>
+<br><br>
+<b>Rough Terrain Omnidirectional Locomotion</b>
+</td>
+</tr>
+
+<tr>
+<td align="center" width="50%">
+<img src="assets/videos/rl-video-step-0 (2).gif" width="100%"></video>
+<br><br>
+<b>Sloped Terrain Omnidirectional Locomotion</b>
+</td>
+
+<td align="center" width="50%">
+<img src="assets/videos/rl-video-step-0 (2).gif" width="100%"></video>
+<br><br>
+<b>Stair Climbing Demonstration</b>
+</td>
+</tr>
+</table>
+
 ## Installation
 
 Prerequisite: install Isaac Lab separately and use its Python environment.
@@ -19,7 +52,7 @@ If the Trakr USD path changes, update it in:
 
 - `source/trakr_rl/trakr_rl/assets/robots/trakr.py`
 
-## Architecture
+## Directory Structure
 
 ```text
 .
