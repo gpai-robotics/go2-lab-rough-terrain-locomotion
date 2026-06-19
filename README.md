@@ -17,13 +17,13 @@ locomotion tasks.
 <table>
 <tr>
 <td align="center" width="50%">
-<img src="assets/videos/rl-video-step-0 (2).gif" width="100%"></video>
+<img src="assets/videos/flat.gif" width="100%"></video>
 <br><br>
 <b>Flat Terrain Omnidirectional Locomotion</b>
 </td>
 
 <td align="center" width="50%">
-<img src="assets/videos/rl-video-step-0 (2).gif" width="100%"></video>
+<img src="assets/videos/rough.gif" width="100%"></video>
 <br><br>
 <b>Rough Terrain Omnidirectional Locomotion</b>
 </td>
@@ -31,13 +31,13 @@ locomotion tasks.
 
 <tr>
 <td align="center" width="50%">
-<img src="assets/videos/rl-video-step-0 (2).gif" width="100%"></video>
+<img src="assets/videos/slopes.gif" width="100%"></video>
 <br><br>
 <b>Sloped Terrain Omnidirectional Locomotion</b>
 </td>
 
 <td align="center" width="50%">
-<img src="assets/videos/rl-video-step-0 (2).gif" width="100%"></video>
+<img src="assets/videos/stairs.gif" width="100%"></video>
 <br><br>
 <b>Stair Climbing Demonstration</b>
 </td>
