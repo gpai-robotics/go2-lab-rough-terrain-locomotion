@@ -64,13 +64,14 @@ pull a different PyTorch/NCCL build into `~/.local` and break IsaacLab imports.
 Check task registration:
 
 ```bash
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/check_tasks.py
+bash scripts/isaaclab_user.sh -p scripts/doctor_isaaclab.py
+bash scripts/isaaclab_user.sh -p scripts/check_tasks.py
 ```
 
 Train the flat prior:
 
 ```bash
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_flat_prior.py \
+bash scripts/isaaclab_user.sh -p scripts/train_flat_prior.py \
   --headless \
   --log-dir ~/isaaclab_logs/go2_flat_mjlab_prior_v1
 ```
@@ -78,13 +79,18 @@ $ISAACLAB_ROOT/isaaclab.sh -p scripts/train_flat_prior.py \
 Train the rough AsymPPO policy, optionally warm-started from the flat prior:
 
 ```bash
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py \
+bash scripts/isaaclab_user.sh -p scripts/train_asymppo.py \
   --flat-prior-checkpoint /path/to/flat_prior_checkpoint.pt \
   --headless \
   --log-dir ~/isaaclab_logs/go2_blind_rough_asymppo_mjlab_v1
 ```
 
 There should be no standalone `/` between arguments.
+
+Use `scripts/isaaclab_user.sh` instead of calling `isaaclab.sh` directly on
+shared `/opt` IsaacLab installs. The wrapper keeps Kit cache/log/temp files
+inside the current user's home directory and exposes Isaac Sim's bundled CUDA
+library folders so `torch` can find libraries such as `libcusparseLt.so.0`.
 
 ## Active Tasks
 

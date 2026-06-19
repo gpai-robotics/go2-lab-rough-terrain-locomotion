@@ -11,7 +11,9 @@ export GO2_USD_PATH=/path/to/go2.usd
 
 $ISAACLAB_ROOT/_isaac_sim/python.sh -m pip install --user --no-deps -e .
 
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_flat_prior.py \
+bash scripts/isaaclab_user.sh -p scripts/doctor_isaaclab.py
+
+bash scripts/isaaclab_user.sh -p scripts/train_flat_prior.py \
   --headless \
   --log-dir ~/isaaclab_logs/go2_flat_mjlab_prior_v1
 ```
@@ -24,7 +26,7 @@ rough-terrain controller.
 Train the rough policy:
 
 ```bash
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py \
+bash scripts/isaaclab_user.sh -p scripts/train_asymppo.py \
   --flat-prior-checkpoint /path/to/flat_prior_checkpoint.pt \
   --headless \
   --log-dir ~/isaaclab_logs/go2_blind_rough_asymppo_mjlab_v1
@@ -33,13 +35,22 @@ $ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py \
 If you do not want warmstart:
 
 ```bash
-$ISAACLAB_ROOT/isaaclab.sh -p scripts/train_asymppo.py \
+bash scripts/isaaclab_user.sh -p scripts/train_asymppo.py \
   --headless \
   --log-dir ~/isaaclab_logs/go2_blind_rough_asymppo_mjlab_v1
 ```
 
 Do not add a standalone `/` between command arguments. It will be parsed as an
 unknown argument by the training script.
+
+For shared `/opt` IsaacLab installs, always launch through
+`scripts/isaaclab_user.sh`. It redirects mutable Kit cache/log/temp files to the
+current user's home directory and exposes Isaac Sim's bundled CUDA libraries to
+PyTorch.
+
+If the doctor reports a user-site `torch`, remove the conflicting user install
+before training. The repo itself should be installed with `--no-deps` so it does
+not replace IsaacLab's bundled PyTorch/CUDA stack.
 
 ## IsaacLab Dependency Boundary
 
