@@ -56,6 +56,23 @@ cd go2-lab-rough-terrain-locomotion
 $ISAACLAB_ROOT/_isaac_sim/python.sh -m pip install --user --no-deps -e .
 ```
 
+The default asset contract targets IsaacLab's Go2 USD:
+
+```text
+base body: base
+foot/contact bodies: .*_foot
+height scanner prim: {ENV_REGEX_NS}/Robot/base
+```
+
+If your Go2 USD uses `base_link` and has no separate `*_foot` bodies, use the
+calf links as contact bodies:
+
+```bash
+export GO2_BASE_BODY_NAME=base_link
+export GO2_FOOT_BODY_REGEX='.*_calf'
+export GO2_HEIGHT_SCANNER_PRIM='{ENV_REGEX_NS}/Robot/base_link'
+```
+
 Do not install this package with dependency resolution enabled inside the Isaac
 Sim Python. IsaacLab already provides the compatible `torch`, CUDA and
 `gymnasium` stack. Installing this repo with normal dependency resolution can

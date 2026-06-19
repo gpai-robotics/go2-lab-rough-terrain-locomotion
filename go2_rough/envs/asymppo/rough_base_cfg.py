@@ -27,6 +27,8 @@ from isaaclab_tasks.manager_based.locomotion.velocity.config.go2.rough_env_cfg i
     UnitreeGo2RoughEnvCfg,
 )
 
+from go2_rough.envs.asset_contract import base_body_name, foot_body_regex, print_asset_contract
+
 
 def stand_still_foot_motion_penalty(
     env,
@@ -129,6 +131,7 @@ class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
         super().__post_init__()
 
         print("\n========== GO2 BLIND ROUGH ASYMPPO BASE ==========\n")
+        print_asset_contract()
 
         if go2_usd_path := os.environ.get("GO2_USD_PATH"):
             self.scene.robot.spawn.usd_path = go2_usd_path
@@ -160,6 +163,7 @@ class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
         self.events.physics_material.params["dynamic_friction_range"] = (0.1, 2.0)
         if self.events.add_base_mass is not None:
             self.events.add_base_mass.params["mass_distribution_params"] = (-2.0, 4.0)
+            self.events.add_base_mass.params["asset_cfg"].body_names = base_body_name()
         self.events.motor_strength = EventTermCfg(
             func=mdp.randomize_actuator_gains,
             mode="startup",
@@ -185,7 +189,7 @@ class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
         terrain_gen.sub_terrains["hf_pyramid_slope_inv"].proportion = 0.1
 
         # Stable blind-policy terminations.
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "base"
+        self.terminations.base_contact.params["sensor_cfg"].body_names = base_body_name()
         self.terminations.base_contact.params["threshold"] = 1.0
         self.terminations.base_orientation = DoneTerm(
             func=mdp.bad_orientation,
@@ -199,7 +203,7 @@ class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
             params={
                 "minimum_clearance": 0.08,
                 "asset_cfg": SceneEntityCfg("robot"),
-                "foot_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+                "foot_cfg": SceneEntityCfg("robot", body_names=foot_body_regex()),
             },
         )
         self.terminations.low_progress = DoneTerm(
@@ -226,13 +230,14 @@ class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
         self.rewards.dof_acc_l2.weight = -1.0e-7
         self.rewards.dof_pos_limits.weight = -0.05
 
+        self.rewards.feet_air_time.params["sensor_cfg"].body_names = foot_body_regex()
         self.rewards.feet_air_time.weight = 0.5
         self.rewards.feet_slide = RewTerm(
             func=mdp.feet_slide,
             weight=-0.05,
             params={
-                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
-                "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=foot_body_regex()),
+                "asset_cfg": SceneEntityCfg("robot", body_names=foot_body_regex()),
             },
         )
         self.rewards.foot_clearance = None
@@ -247,7 +252,7 @@ class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
             func=stand_still_foot_motion_penalty,
             weight=-0.05,
             params={
-                "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=foot_body_regex()),
                 "command_name": "base_velocity",
                 "command_threshold": 0.15,
                 "velocity_threshold": 0.2,

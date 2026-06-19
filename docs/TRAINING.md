@@ -21,6 +21,27 @@ bash scripts/isaaclab_user.sh -p scripts/train_flat_prior.py \
 The flat prior is used only as an actor warmstart. It is not deployed as the
 rough-terrain controller.
 
+## Asset Naming Contract
+
+Leave these unset for the default IsaacLab Go2 asset:
+
+```text
+base body: base
+foot/contact bodies: .*_foot
+height scanner prim: {ENV_REGEX_NS}/Robot/base
+```
+
+If your Go2 USD uses `base_link` and has no separate `*_foot` bodies, set:
+
+```bash
+export GO2_BASE_BODY_NAME=base_link
+export GO2_FOOT_BODY_REGEX='.*_calf'
+export GO2_HEIGHT_SCANNER_PRIM='{ENV_REGEX_NS}/Robot/base_link'
+```
+
+Run `doctor_isaaclab.py` after setting these variables so the active contract
+is printed before training starts.
+
 ## Stage 2: Rough AsymPPO
 
 Train the rough policy:

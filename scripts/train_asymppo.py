@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import traceback
 from pathlib import Path
 
 from isaaclab.app import AppLauncher
@@ -44,7 +45,17 @@ def main() -> None:
         runner_cfg.max_iterations = int(args_cli.max_iterations)
 
     env_cfg.sim.log_dir = str(Path(args_cli.log_dir).expanduser() / "isaaclab")
-    env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
+    try:
+        env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
+    except Exception:
+        print("[ERROR] Environment creation failed.")
+        print(
+            "[HINT] If your Go2 USD uses base_link and has no *_foot bodies, set "
+            "GO2_BASE_BODY_NAME=base_link, GO2_FOOT_BODY_REGEX='.*_calf', and "
+            "GO2_HEIGHT_SCANNER_PRIM='{ENV_REGEX_NS}/Robot/base_link'."
+        )
+        traceback.print_exc()
+        raise
     env = RslRlVecEnvWrapper(env, clip_actions=runner_cfg.clip_actions)
     log_dir = Path(args_cli.log_dir).expanduser()
     log_dir.mkdir(parents=True, exist_ok=True)

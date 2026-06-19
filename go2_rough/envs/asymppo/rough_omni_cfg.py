@@ -10,6 +10,7 @@ from isaaclab.utils import configclass
 from go2_rough.envs.asymppo import command_curriculums
 from go2_rough.envs.asymppo.rough_base_cfg import air_time_variance_penalty
 from go2_rough.envs.asymppo.rough_privileged_history_cfg import Go2AsymPpoPrivilegedHistoryEnvCfg
+from go2_rough.envs.asset_contract import foot_body_regex
 
 
 @configclass
@@ -52,7 +53,7 @@ class Go2AsymPpoRoughOmniEnvCfg(Go2AsymPpoPrivilegedHistoryEnvCfg):
             func=air_time_variance_penalty,
             weight=-0.05,
             params={
-                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=foot_body_regex()),
                 "command_name": "base_velocity",
                 "command_threshold": 0.2,
                 "min_recorded_air_time": 0.05,

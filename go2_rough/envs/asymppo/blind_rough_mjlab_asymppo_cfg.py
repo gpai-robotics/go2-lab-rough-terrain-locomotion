@@ -12,6 +12,7 @@ from isaaclab.utils import configclass
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 
 from go2_rough.envs.asymppo.rough_omni_cfg import Go2AsymPpoRoughOmniEnvCfg
+from go2_rough.envs.asset_contract import base_body_name
 from go2_rough.envs.mjlab_contract import MjlabCriticPrivilegedObsCfg, apply_mjlab_policy_contract
 
 
@@ -60,7 +61,7 @@ class Go2BlindRoughMjlabAsymPpoEnvCfg(Go2AsymPpoRoughOmniEnvCfg):
             func=mdp.randomize_rigid_body_com,
             mode="startup",
             params={
-                "asset_cfg": SceneEntityCfg("robot", body_names="base"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=base_body_name()),
                 "com_range": {
                     "x": (-0.03, 0.03),
                     "y": (-0.03, 0.03),

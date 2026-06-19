@@ -12,6 +12,7 @@ from go2_rough.envs.privileged_obs import (
     TrackedRandomizeRigidBodyMass,
     TrackedRandomizeRigidBodyMaterial,
 )
+from go2_rough.envs.asset_contract import height_scanner_prim_path
 
 
 @configclass
@@ -24,7 +25,7 @@ class Go2AsymPpoPrivilegedHistoryEnvCfg(Go2AsymPpoHistoryBaseEnvCfg):
         super().__post_init__()
 
         self.scene.height_scanner = RayCasterCfg(
-            prim_path="{ENV_REGEX_NS}/Robot/base",
+            prim_path=height_scanner_prim_path(),
             offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
             ray_alignment="yaw",
             pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),

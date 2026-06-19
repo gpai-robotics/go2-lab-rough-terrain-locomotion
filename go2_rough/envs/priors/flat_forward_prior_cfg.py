@@ -10,6 +10,8 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 
+from go2_rough.envs.asset_contract import foot_body_regex, print_asset_contract
+
 
 def stand_still_foot_motion_penalty(
     env,
@@ -45,6 +47,7 @@ class Go2FlatForwardPriorEnvCfg(UnitreeGo2FlatEnvCfg):
         super().__post_init__()
 
         print("\n========== GO2 FLAT PRIOR BACKBONE ==========\n")
+        print_asset_contract()
 
         if go2_usd_path := os.environ.get("GO2_USD_PATH"):
             self.scene.robot.spawn.usd_path = go2_usd_path
@@ -95,7 +98,7 @@ class Go2FlatForwardPriorEnvCfg(UnitreeGo2FlatEnvCfg):
             weight=0.3,
             params={
                 "command_name": "base_velocity",
-                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=foot_body_regex()),
                 "threshold": 0.5,
             },
         )
@@ -103,8 +106,8 @@ class Go2FlatForwardPriorEnvCfg(UnitreeGo2FlatEnvCfg):
             func=mdp.feet_slide,
             weight=-0.1,
             params={
-                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
-                "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=foot_body_regex()),
+                "asset_cfg": SceneEntityCfg("robot", body_names=foot_body_regex()),
             },
         )
         self.rewards.stand_still_joint_deviation = RewTerm(
@@ -116,7 +119,7 @@ class Go2FlatForwardPriorEnvCfg(UnitreeGo2FlatEnvCfg):
             func=stand_still_foot_motion_penalty,
             weight=-0.1,
             params={
-                "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=foot_body_regex()),
                 "command_name": "base_velocity",
                 "command_threshold": 0.15,
                 "velocity_threshold": 0.2,
