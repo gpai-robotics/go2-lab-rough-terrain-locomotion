@@ -7,7 +7,6 @@ contract used by the rough policy:
 
 ```bash
 export ISAACLAB_ROOT=/path/to/IsaacLab
-export GO2_USD_PATH=/path/to/go2.usd
 
 $ISAACLAB_ROOT/_isaac_sim/python.sh -m pip install --user --no-deps -e .
 
@@ -23,7 +22,13 @@ rough-terrain controller.
 
 ## Asset Naming Contract
 
-Leave these unset for the default IsaacLab Go2 asset:
+Training uses the bundled Go2 USD by default:
+
+```text
+assets/robots/go2/go2.usd
+```
+
+Leave these unset for the bundled/default asset:
 
 ```text
 base body: base
@@ -31,9 +36,11 @@ foot/contact bodies: .*_foot
 height scanner prim: {ENV_REGEX_NS}/Robot/base
 ```
 
-If your Go2 USD uses `base_link` and has no separate `*_foot` bodies, set:
+Only set `GO2_USD_PATH` if you intentionally want a different Go2 USD. If that
+USD uses `base_link` and has no separate `*_foot` bodies, set:
 
 ```bash
+export GO2_USD_PATH=/path/to/custom/go2.usd
 export GO2_BASE_BODY_NAME=base_link
 export GO2_FOOT_BODY_REGEX='.*_calf'
 export GO2_HEIGHT_SCANNER_PRIM='{ENV_REGEX_NS}/Robot/base_link'

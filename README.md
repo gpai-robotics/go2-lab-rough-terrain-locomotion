@@ -50,13 +50,21 @@ Install:
 
 ```bash
 export ISAACLAB_ROOT=/path/to/IsaacLab
-export GO2_USD_PATH=/path/to/go2.usd
 
 cd go2-lab-rough-terrain-locomotion
 $ISAACLAB_ROOT/_isaac_sim/python.sh -m pip install --user --no-deps -e .
 ```
 
-The default asset contract targets IsaacLab's Go2 USD:
+This repo vendors the Go2 USD asset used for the reported AsymPPO candidate:
+
+```text
+assets/robots/go2/go2.usd
+```
+
+By default, training uses that bundled asset. You only need `GO2_USD_PATH` if
+you intentionally want to train with a different Go2 USD.
+
+The bundled/default asset contract is:
 
 ```text
 base body: base
@@ -64,10 +72,11 @@ foot/contact bodies: .*_foot
 height scanner prim: {ENV_REGEX_NS}/Robot/base
 ```
 
-If your Go2 USD uses `base_link` and has no separate `*_foot` bodies, use the
-calf links as contact bodies:
+If you override `GO2_USD_PATH` with a USD that uses `base_link` and has no
+separate `*_foot` bodies, use the calf links as contact bodies:
 
 ```bash
+export GO2_USD_PATH=/path/to/custom/go2.usd
 export GO2_BASE_BODY_NAME=base_link
 export GO2_FOOT_BODY_REGEX='.*_calf'
 export GO2_HEIGHT_SCANNER_PRIM='{ENV_REGEX_NS}/Robot/base_link'

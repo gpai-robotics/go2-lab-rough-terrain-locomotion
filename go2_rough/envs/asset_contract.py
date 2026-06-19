@@ -20,6 +20,15 @@ setting:
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+
+def bundled_go2_usd_path() -> Path:
+    return Path(__file__).resolve().parents[2] / "assets" / "robots" / "go2" / "go2.usd"
+
+
+def go2_usd_path() -> str:
+    return os.environ.get("GO2_USD_PATH", str(bundled_go2_usd_path()))
 
 
 def base_body_name() -> str:

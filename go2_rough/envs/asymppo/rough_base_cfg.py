@@ -13,7 +13,6 @@ blind ladder, but strips the task down to a clean deployable blind baseline:
 
 from __future__ import annotations
 
-import os
 import torch
 
 from isaaclab.envs import mdp as base_mdp
@@ -27,7 +26,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.config.go2.rough_env_cfg i
     UnitreeGo2RoughEnvCfg,
 )
 
-from go2_rough.envs.asset_contract import base_body_name, foot_body_regex, print_asset_contract
+from go2_rough.envs.asset_contract import base_body_name, foot_body_regex, go2_usd_path, print_asset_contract
 
 
 def stand_still_foot_motion_penalty(
@@ -133,8 +132,7 @@ class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
         print("\n========== GO2 BLIND ROUGH ASYMPPO BASE ==========\n")
         print_asset_contract()
 
-        if go2_usd_path := os.environ.get("GO2_USD_PATH"):
-            self.scene.robot.spawn.usd_path = go2_usd_path
+        self.scene.robot.spawn.usd_path = go2_usd_path()
         self.scene.num_envs = 4096
 
         # Make playback/recording open in a robot-following view by default.

@@ -55,6 +55,7 @@ def main() -> None:
     try:
         import gymnasium as gym
         import go2_rough  # noqa: F401
+        from go2_rough.envs.asset_contract import bundled_go2_usd_path, go2_usd_path
     except Exception as exc:
         _fail(f"go2_rough import failed: {exc}")
 
@@ -65,30 +66,29 @@ def main() -> None:
             _fail(f"Gym task is not registered: {task_id}: {exc}")
         _ok(f"task registered: {task_id}")
 
-    go2_usd_path = os.environ.get("GO2_USD_PATH")
+    active_go2_usd_path = Path(go2_usd_path()).expanduser()
+    bundled_path = bundled_go2_usd_path()
     base_body_name = os.environ.get("GO2_BASE_BODY_NAME", "base")
     foot_body_regex = os.environ.get("GO2_FOOT_BODY_REGEX", ".*_foot")
     height_scanner_prim = os.environ.get("GO2_HEIGHT_SCANNER_PRIM", f"{{ENV_REGEX_NS}}/Robot/{base_body_name}")
 
     print("[INFO] Asset contract:")
+    print(f"[INFO]   bundled_go2_usd={bundled_path}")
+    print(f"[INFO]   active_go2_usd={active_go2_usd_path}")
     print(f"[INFO]   GO2_BASE_BODY_NAME={base_body_name}")
     print(f"[INFO]   GO2_FOOT_BODY_REGEX={foot_body_regex}")
     print(f"[INFO]   GO2_HEIGHT_SCANNER_PRIM={height_scanner_prim}")
 
-    if go2_usd_path:
-        path = Path(go2_usd_path).expanduser()
-        if path.is_file():
-            _ok(f"GO2_USD_PATH={path}")
-            if base_body_name == "base" and foot_body_regex == ".*_foot":
-                _warn(
-                    "Using the default IsaacLab Go2 naming contract. If this USD has base_link and no *_foot links, set "
-                    "GO2_BASE_BODY_NAME=base_link, GO2_FOOT_BODY_REGEX='.*_calf', and "
-                    "GO2_HEIGHT_SCANNER_PRIM='{ENV_REGEX_NS}/Robot/base_link'."
-                )
-        else:
-            _warn(f"GO2_USD_PATH is set but does not exist: {path}")
+    if active_go2_usd_path.is_file():
+        _ok(f"Go2 USD exists: {active_go2_usd_path}")
+        if os.environ.get("GO2_USD_PATH") and base_body_name == "base" and foot_body_regex == ".*_foot":
+            _warn(
+                "Using the default IsaacLab Go2 naming contract with a custom USD. If this USD has base_link and "
+                "no *_foot links, set GO2_BASE_BODY_NAME=base_link, GO2_FOOT_BODY_REGEX='.*_calf', and "
+                "GO2_HEIGHT_SCANNER_PRIM='{ENV_REGEX_NS}/Robot/base_link'."
+            )
     else:
-        _warn("GO2_USD_PATH is not set. Set it before training if the default public placeholder asset is unavailable.")
+        _fail(f"Go2 USD does not exist: {active_go2_usd_path}")
 
     _ok("preflight complete")
 

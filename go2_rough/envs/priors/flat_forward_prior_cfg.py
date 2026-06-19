@@ -1,6 +1,5 @@
 """Go2 flat prior backbone used to warm-start the rough AsymPPO actor."""
 
-import os
 import torch
 from isaaclab.envs import mdp as base_mdp
 from isaaclab.utils import configclass
@@ -10,7 +9,7 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 
-from go2_rough.envs.asset_contract import foot_body_regex, print_asset_contract
+from go2_rough.envs.asset_contract import foot_body_regex, go2_usd_path, print_asset_contract
 
 
 def stand_still_foot_motion_penalty(
@@ -49,8 +48,7 @@ class Go2FlatForwardPriorEnvCfg(UnitreeGo2FlatEnvCfg):
         print("\n========== GO2 FLAT PRIOR BACKBONE ==========\n")
         print_asset_contract()
 
-        if go2_usd_path := os.environ.get("GO2_USD_PATH"):
-            self.scene.robot.spawn.usd_path = go2_usd_path
+        self.scene.robot.spawn.usd_path = go2_usd_path()
         self.scene.num_envs = 4096
         self.episode_length_s = 20.0
 
