@@ -10,6 +10,9 @@ from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, ImplicitActuatorCf
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils import configclass
 
+TRAKR_USD_PATH = os.path.join(os.path.dirname(__file__), "usd", "trakr_imu.usd")
+
+
 @configclass
 class TrakrArticulationCfg(ArticulationCfg):
     """Configuration for Trakr articulations."""
@@ -42,7 +45,7 @@ TRAKR_CFG = TrakrArticulationCfg(
     #     asset_path=f"{UNITREE_ROS_DIR}/robots/go2_description/urdf/go2_description.urdf",
     # ),
     spawn=TrakrUsdFileCfg(
-        usd_path="/home/bhuvan/projects/addverb/mrigaank/mrigaank/usd_files_issac_sim/trakr_imu.usd",
+        usd_path=TRAKR_USD_PATH,
     ),
     #Joint Positions and Default Standing Positionswere taken from the trakr_legged_rl repository
     init_state=ArticulationCfg.InitialStateCfg(
