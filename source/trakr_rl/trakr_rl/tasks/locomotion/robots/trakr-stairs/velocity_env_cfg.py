@@ -275,7 +275,7 @@ class RewardsCfg:
         func=mdp.track_lin_vel_xy_exp, weight=4.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.75, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=1.25, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
 
     # -- base
@@ -284,23 +284,18 @@ class RewardsCfg:
     joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.001)
     joint_acc = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     joint_torques = RewTerm(func=mdp.joint_torques_l2, weight=-2e-4)
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.05)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-10.0)
     energy = RewTerm(func=mdp.energy, weight=-2e-5)
 
     # -- robot
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-1.5)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-2.5)
 
-    roll_penalty = RewTerm(func=mdp.roll_penalty, weight=-2.0)
-
-    pitch_penalty = RewTerm(
-        func = mdp.pitch_rate_penalty,
-        weight = -2.0
-    )
+    # roll_rate_penalty = RewTerm(func=mdp.roll_rate_penalty, weight=-2.0)
 
     joint_pos = RewTerm(
         func=mdp.joint_position_penalty,
-        weight=-2.00,
+        weight=-1.25,
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
             "stand_still_scale": 5.0,
@@ -318,13 +313,11 @@ class RewardsCfg:
             "threshold": 0.5,
         },
     )
-
     air_time_variance = RewTerm(
         func=mdp.air_time_variance_penalty,
-        weight=-0.75,
+        weight=-0.5,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe")},
     )
-
     feet_slide = RewTerm(
         func=mdp.feet_slide,
         weight=-0.1,
@@ -333,7 +326,6 @@ class RewardsCfg:
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
         },
     )
-
     
     feet_height_body = RewTerm(
         func=mdp.feet_height_body,
@@ -341,7 +333,7 @@ class RewardsCfg:
         params={
             "command_name": "base_velocity",
             "target_height": 0.15,
-            "tanh_mult": 8.0,
+            "tanh_mult": 15.0,
             "asset_cfg": SceneEntityCfg("robot", body_names=[".*_toe"]),
         },
     )
@@ -357,7 +349,7 @@ class RewardsCfg:
     # -- other
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-2.0,
+        weight=-1,
         params={
             "threshold": 1,
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_hip", ".*_thigh", ".*_shank"]), # updated to match the trakr_imu.usd file --> found the PhysicsRevoluteJoints (bascially the DOFs) from the Stage in IsaacSim and checked if they have a contact reporter API
@@ -431,7 +423,12 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
 class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs =8
+        self.scene.num_envs = 8
         self.scene.terrain.terrain_generator.num_rows = 3
         self.scene.terrain.terrain_generator.num_cols = 3
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges
+
+        self.terminations.time_out = None
+
+        self.events.push_robot = None
+        self.events.base_external_force_torque = None

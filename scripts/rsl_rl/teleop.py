@@ -90,16 +90,16 @@ def on_press(key):
 
     try:
         if key.char == "w":
-            vx = 0.8
+            vy = 0.8
 
         elif key.char == "s":
-            vx = -0.8
+            vy = -0.8
 
         elif key.char == "a":
-            vy = 0.5
+            vx = -0.5
 
         elif key.char == "d":
-            vy = -0.5
+            vx = 0.5
 
         elif key.char == "q":
             yaw = 1.0
@@ -226,7 +226,7 @@ def main():
         start_time = time.time()
 
         with torch.inference_mode():
-            #vx, vy, yaw is the 
+
             command = torch.tensor(
                 [[vx, vy, yaw]],
                 device=env.unwrapped.device

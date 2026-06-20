@@ -90,19 +90,18 @@ class RobotSceneCfg(InteractiveSceneCfg):
         debug_vis=False,
     )
     # robots
-    #Changed the prim path to match the trakr_imu.usd file
     robot: ArticulationCfg = ROBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/trakr")
 
     # sensors
     height_scanner = RayCasterCfg(
-        prim_path="{ENV_REGEX_NS}/trakr/trakr/base_link",  # updated to match the trakr_imu.usd file --> inspected the Stage and the prim paths in IsaacSim
+        prim_path="{ENV_REGEX_NS}/trakr/trakr/base_link",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
-    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/trakr/trakr/.*", history_length=3, track_air_time=True)  # updated to match the trakr_imu.usd file --> inspected the Stage and the prim paths in IsaacSim
+    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/trakr/trakr/.*", history_length=3, track_air_time=True)
     # lights
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
@@ -134,7 +133,7 @@ class EventCfg:
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),  # Updated body_name from 'base' to 'base_link' to match the trakr_imu.usd file
+            "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),
             "mass_distribution_params": (-1.0, 3.0),
             "operation": "add",
         },
@@ -145,7 +144,7 @@ class EventCfg:
         func=mdp.apply_external_force_torque,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),  # Updated body_name from 'base' to 'base_link' to match the trakr_imu.usd file
+            "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),
             "force_range": (0.0, 0.0),
             "torque_range": (-0.0, 0.0),
         },
@@ -233,7 +232,7 @@ class ObservationsCfg:
         last_action = ObsTerm(func=mdp.last_action, clip=(-100, 100))
 
         def __post_init__(self):
-            self.history_length = 5
+            # self.history_length = 5
             self.enable_corruption = True
             self.concatenate_terms = True
 
@@ -259,8 +258,8 @@ class ObservationsCfg:
         #     clip=(-1.0, 5.0),
         # )
 
-        def __post_init__(self):
-            self.history_length = 5
+        # def __post_init__(self):
+        #     self.history_length = 5
 
     # privileged observations
     critic: CriticCfg = CriticCfg()
@@ -272,7 +271,7 @@ class RewardsCfg:
 
     # -- task
     track_lin_vel_xy = RewTerm(
-        func=mdp.track_lin_vel_xy_exp, weight=3.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_lin_vel_xy_exp, weight=1.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.75, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
@@ -286,12 +285,10 @@ class RewardsCfg:
     joint_torques = RewTerm(func=mdp.joint_torques_l2, weight=-2e-4)
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-10.0)
-    energy = RewTerm(func=mdp.energy, weight=-2e-4)
+    energy = RewTerm(func=mdp.energy, weight=-2e-5)
 
     # -- robot
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-3.0)
-
-    roll_penalty = RewTerm(func=mdp.roll_penalty, weight=-2.0)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-2.5)
 
     joint_pos = RewTerm(
         func=mdp.joint_position_penalty,
@@ -306,7 +303,7 @@ class RewardsCfg:
     # -- feet
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.75,
+        weight=0.1,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
             "command_name": "base_velocity",
@@ -326,7 +323,6 @@ class RewardsCfg:
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
         },
     )
-
     # feet_contact_forces = RewTerm(
     #     func=mdp.contact_forces,
     #     weight=-0.02,
@@ -342,7 +338,7 @@ class RewardsCfg:
         weight=-1,
         params={
             "threshold": 1,
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_hip", ".*_thigh", ".*_shank"]), # updated to match the trakr_imu.usd file --> found the PhysicsRevoluteJoints (bascially the DOFs) from the Stage in IsaacSim and checked if they have a contact reporter API
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=[".*_hip", ".*_thigh", ".*_shank"]),
         },
     )
 
@@ -354,7 +350,7 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     base_contact = DoneTerm(
         func=mdp.illegal_contact,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base_link"), "threshold": 1.0},  # Updated body_name from 'base' to 'base_link' to match the trakr_imu.usd file
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base_link"), "threshold": 1.0},
     )
     bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.8})
 
@@ -372,7 +368,7 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
-    scene: RobotSceneCfg = RobotSceneCfg(num_envs=512, env_spacing=4)
+    scene: RobotSceneCfg = RobotSceneCfg(num_envs=512, env_spacing=2.5)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -413,7 +409,12 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
 class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs = 32
+        self.scene.num_envs = 1
         self.scene.terrain.terrain_generator.num_rows = 2
         self.scene.terrain.terrain_generator.num_cols = 1
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges
+
+        self.terminations.time_out = None
+
+        self.events.push_robot = None
+        self.events.base_external_force_torque = None

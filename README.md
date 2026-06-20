@@ -12,7 +12,7 @@ This repo adapts that structure and training flow for the Trakr robot and its
 locomotion tasks.
 
 
-# Multi-Terrain Demonstration
+## Multi-Terrain Demonstration
 
 <table>
 <tr>
@@ -100,11 +100,17 @@ Train rough-terrain locomotion:
 ./trakr_rl.sh -t --task Trakr-Velocity-Rough
 ```
 
-Warm-start rough-terrain training from a flat-terrain checkpoint:
+Train Stair Climbing/Descending:
+
+```bash
+./trakr_rl.sh -t --task Trakr-Velocity-Stairs
+```
+
+Warm-start training from a pre-trained checkpoint:
 
 ```bash
 ./trakr_rl.sh -t \
-  --task Trakr-Velocity-Rough \
+  --task [TASK-NAME] \
   --resume \
   --checkpoint /abs/path/to/model.pt
 ```
@@ -115,16 +121,26 @@ Play a checkpoint:
 
 ```bash
 ./trakr_rl.sh -p \
-  --task Trakr-Velocity \
+  --task [TASK-NAME] \
   --checkpoint /abs/path/to/model.pt
 ```
 
-Play a rough-terrain checkpoint with one environment in real time:
+Play a checkpoint with one environment in real time:
 
 ```bash
 ./trakr_rl.sh -p \
-  --task Trakr-Velocity-Rough \
+  --task [TASK_NAME] \
   --checkpoint /abs/path/to/model.pt \
   --num_envs 1 \
   --real-time
+```
+
+## Teleoperation 
+
+Teleoperate Trakr with a checkpoint 
+
+```bash
+./trakr_rl.sh --teleop \
+  --task [TASK-NAME] \
+  --checkpoint /abs/path/to/model.pt
 ```
