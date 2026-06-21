@@ -144,3 +144,12 @@ Teleoperate Trakr with a checkpoint
   --task [TASK-NAME] \
   --checkpoint /abs/path/to/model.pt
 ```
+
+## Documentation
+ 
+| Document | Description |
+|---|---|
+| [Articulation Setup](docs/articulation.md) | Configuring Trakr as an Isaac Lab articulation |
+| [Task Setup](docs/task_setup.md) | Flat and rough terrain task registration and MDP design |
+| [Policy & Training](docs/policy_training.md) | PPO architecture and hyperparameter reference |
+| [Reward Functions](docs/rewards.md) | Reward terms, tuning rationale, and formulas |

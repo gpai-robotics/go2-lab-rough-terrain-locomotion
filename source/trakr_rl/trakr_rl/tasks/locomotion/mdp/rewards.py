@@ -85,14 +85,34 @@ def still_penalty(
     body_pos =torch.linalg.norm(asset.data.root_link_pos_w[:, 1],)
     return torch.where(torch.logical_and(cmd > 0.0, body_pos < 0.1), 1.0, 0.0)
 
-def pitch_rate_penalty(
-        env:ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+def pitch_rate_penalty_1(
+        env: ManagerBasedRLEnv,command_name: str = "base_velocity", asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
-    "Penalizes high pitch rate for robot, to prevent it from toppling forwards"
+    "Penalizes high pitch rate wihout progress (progress characterized by linear_vel tracking)"
     asset: Articulation = env.scene[asset_cfg.name]
-    omega = asset.data.root_ang_vel_b
-    pitch_rate = omega[:, 1]
+    pitch_rate = asset.data.root_ang_vel_b[:, 1]
+    cmd_vel = env.command_manager.get_command(command_name)[:, 1]
+    actual_vel = asset.data.root_lin_vel_w[:, 1]
+
+    progress = torch.square(cmd_vel - actual_vel) 
+    return torch.square(pitch_rate) * progress
+
+def pitch_rate_penalty_2(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    "Penalizes high pitch rate"
+    asset: Articulation = env.scene[asset_cfg.name]
+    pitch_rate = asset.data.root_ang_vel_b[:, 1]
     return torch.square(pitch_rate)
+
+def roll_rate_penalty(
+env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Penalizes high roll rate"""
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    roll_rate = asset.data.root_ang_vel_b[:, 0]
+    return torch.square(roll_rate)
 """
 Feet rewards.
 """
@@ -143,12 +163,13 @@ def foot_clearance_reward(
     reward = foot_z_target_error * foot_velocity_tanh
     return torch.exp(-torch.sum(reward, dim=1) / std)
 
-def feet_too_near(
+def feet_spacing_penalty(
     env: ManagerBasedRLEnv, threshold: float = 0.2, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
     feet_pos = asset.data.body_pos_w[:, asset_cfg.body_ids, :]
     distance = torch.norm(feet_pos[:, 0] - feet_pos[:, 1], dim=-1)
+    print(f"[INFO] : Distance = {distance}")
     return (threshold - distance).clamp(min=0)
 
 def foot_slip_penalty(
@@ -199,11 +220,11 @@ def air_time_variance_penalty(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg
 
 def roll_penalty(
         env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-):
+) -> torch.Tensor:
     """Penalize roll angle of the robot."""
-    asset: RigidObject = env.scene[asset_cfg.name]
+    asset: Articulation = env.scene[asset_cfg.name]
     roll = asset.data.projected_gravity_b[:, 0]
-    return torch.pow(roll, 2)
+    return torch.square(roll)
 
 
 """
@@ -263,3 +284,33 @@ def joint_mirror(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, mirror_joint
         )
     reward *= 1 / len(mirror_joints) if len(mirror_joints) > 0 else 0
     return reward
+
+def stable_progress(
+    env: ManagerBasedRLEnv,
+    command_name="base_velocity",
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+
+    """Rewards progress along commanded direction with stable gait."""
+
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    cmd = env.command_manager.get_command(command_name)
+    cmd_vel = torch.linalg.norm(cmd[:, :2], dim=1)
+
+    cmd_dir = cmd[:, :2] / (torch.linalg.norm(cmd[:, :2],dim=1,keepdim=True) + 1e-6)
+
+    robot_vel = asset.data.root_lin_vel_b[:, :2]
+
+    lin_vel = torch.sum(robot_vel * cmd_dir,dim=1)
+
+    lin_vel = torch.clamp(lin_vel,min=0.0)
+
+    omega = asset.data.root_ang_vel_b
+
+    pitch_rate = omega[:, 1]
+    roll_rate = omega[:, 0]
+
+    stability = torch.exp(-2.0 * (torch.square(pitch_rate)+torch.square(roll_rate)))
+    return torch.where(cmd_vel>0.1, lin_vel*stability, torch.zeros_like(lin_vel))
+

@@ -428,12 +428,12 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
 class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs = 16
+        self.scene.num_envs = 8
         self.scene.terrain.terrain_generator.num_rows = 3
         self.scene.terrain.terrain_generator.num_cols = 3
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges
 
-        # self.terminations.time_out = None
+        self.terminations.time_out = None
 
         self.events.push_robot = None
         self.events.base_external_force_torque = None
