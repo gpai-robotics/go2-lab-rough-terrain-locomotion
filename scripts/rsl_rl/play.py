@@ -49,6 +49,8 @@ import gymnasium as gym
 import os
 import time
 import torch
+import json
+from datetime import datetime
 
 from rsl_rl.runners import OnPolicyRunner
 
@@ -80,6 +82,13 @@ def main():
     log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Loading experiment from directory: {log_root_path}")
+
+    #Initializing Variables for OOD Evaluation Metrics
+    total_terminals = 0
+    total_timeout = 0
+    total_base_contact = 0
+    total_bad_orientation = 0
+    episode_vel_rewards = []
 
     #UPDATE --> The version of IsaacLab we have does not support the get_published_pretrained_checkpoint function, so we will directly use the checkpoint path provided or check the logs directory. 
     # if args_cli.use_pretrained_checkpoint:
@@ -168,7 +177,23 @@ def main():
             # agent stepping
             actions = policy(obs)
             # env stepping
-            obs, _, _, _ = env.step(actions)
+            obs, _, dones, info = env.step(actions)
+            isaac_env = env.unwrapped
+
+            base_contact = isaac_env.termination_manager.get_term("base_contact")
+            bad_orientation = isaac_env.termination_manager.get_term("bad_orientation")
+            time_out = isaac_env.termination_manager.get_term("time_out")
+
+            total_terminals += int(dones.sum().item())
+
+            total_base_contact += int((dones & base_contact).sum().item())
+            total_bad_orientation += int((dones & bad_orientation).sum().item())
+            total_timeout += int((dones & time_out).sum().item())
+
+            if dones.any():
+                vel_error = info["log"]["Episode_Reward/track_lin_vel_xy"]
+                episode_vel_rewards.append(vel_error.mean().item())
+
         if args_cli.video:
             timestep += 1
             # Exit the play loop after recording one video
@@ -180,9 +205,54 @@ def main():
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
 
+        if total_terminals > 0:
+
+            avg_vel_reward = sum(episode_vel_rewards) / len(episode_vel_rewards)
+
+            timeout_fraction = (
+                total_timeout / total_terminals
+            )
+
+            base_contact_fraction = (
+                total_base_contact / total_terminals
+            )
+
+            bad_orientation_fraction = (
+                total_bad_orientation / total_terminals
+            )
+
+            print("\n===== OOD Metrics =====")
+            print(f"Velocity Tracking Reward: {avg_vel_reward:.4f}")
+            print(f"Episodes completed: {total_terminals}")
+            print(f"Timeout fraction: {timeout_fraction:.4f}")
+            print(f"Base-contact fraction: {base_contact_fraction:.4f}")
+            print(f"Bad-orientation fraction: {bad_orientation_fraction:.4f}")
+
     # close the simulator
     env.close()
 
+    os.makedirs("Metrics", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    results =  {
+        "task" : args_cli.task,
+        "total_terminals": total_terminals,
+        "total_timeout": total_timeout,
+        "total_base_contact": total_base_contact,
+        "total_bad_orientation": total_bad_orientation,
+        "timeout_fraction": timeout_fraction if total_terminals > 0 else None,
+        "base_contact_fraction": base_contact_fraction if total_terminals > 0 else None,
+        "bad_orientation_fraction": bad_orientation_fraction if total_terminals > 0 else None,
+        "velocity_tracking_reward": avg_vel_reward if episode_vel_rewards else None,
+        "timestamp": timestamp
+    }
+
+    save_path = os.path.join("Metrics", f"ood_metrics_{args_cli.task}_{timestamp}.json")
+    
+    with open(save_path, "w") as f:
+        json.dump(results, f, indent=4)
+
+    print(f"[INFO] OOD metrics saved to: {save_path}")
 
 if __name__ == "__main__":
     # run the main function
