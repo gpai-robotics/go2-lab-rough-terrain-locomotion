@@ -1,0 +1,13 @@
+{
+    "description": "Random Rough terrain",
+    "timestamp": "2026-06-24_17-26-54",
+    "total_terminals": 111,
+    "total_timeout": 79,
+    "total_base_contact": 0,
+    "total_bad_orientation": 32,
+    "timeout_fraction": 0.7117117117117117,
+    "base_contact_fraction": 0.0,
+    "bad_orientation_fraction": 0.2882882882882883,
+    "avg_vel_error": 0.2030356197077551,
+    "avg_yaw_error": 0.10877473799534786
+}

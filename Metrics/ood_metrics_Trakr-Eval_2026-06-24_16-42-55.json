@@ -1,0 +1,13 @@
+{
+    "description": "Adding 10kgs on flat terrain",
+    "timestamp": "2026-06-24_16-42-55",
+    "total_terminals": 64,
+    "total_timeout": 64,
+    "total_base_contact": 0,
+    "total_bad_orientation": 0,
+    "timeout_fraction": 1.0,
+    "base_contact_fraction": 0.0,
+    "bad_orientation_fraction": 0.0,
+    "avg_vel_error": 0.6682579517364502,
+    "avg_yaw_error": 0.0
+}

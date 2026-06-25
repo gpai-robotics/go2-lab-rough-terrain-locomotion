@@ -70,7 +70,10 @@ If the Trakr USD path changes, update it in:
 │               └── locomotion/
 │                   └── robots/
 │                       ├── trakr/
-│                       └── trakr-rough/
+│                       ├── trakr-rough/
+|                       ├── trakr-stairs/
+|                       ├── trakr-blocks/
+|                       └── trakr-eval/
 ├── logs/
 └── trakr_rl.sh
 ```
@@ -78,12 +81,12 @@ If the Trakr USD path changes, update it in:
 Key pieces:
 
 - `source/trakr_rl/trakr_rl/assets/robots/trakr.py`: Trakr USD and actuator configuration
-- `source/trakr_rl/trakr_rl/tasks/locomotion/robots/trakr/`: flat-terrain Trakr task
 - `source/trakr_rl/trakr_rl/tasks/locomotion/mdp/rewards.py`: Reward Functions definition
-- `source/trakr_rl/trakr_rl/tasks/locomotion/robots/trakr-rough/`: rough-terrain Trakr task
+- `source/trakr_rl/trakr_rl/utils/ood_merics.py`: OOD Metrics definition
 - `source/trakr_rl/trakr_rl/tasks/locomotion/robots/[TASK-NAME]/velocity_env_cfg.py` : Task specific config file
 - `scripts/rsl_rl/train.py`: RSL-RL training entrypoint
 - `scripts/rsl_rl/play.py`: checkpoint visualization entrypoint
+- `scripts/rsl_rl/teleop.py` : teleoperation with trained checkpoint entrypoint
 - `trakr_rl.sh`: wrapper for install, list, train, and play
 
 ## Training

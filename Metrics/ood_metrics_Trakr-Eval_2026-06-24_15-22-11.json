@@ -1,0 +1,13 @@
+{
+    "description": "Blocks Eval",
+    "timestamp": "2026-06-24_15-22-11",
+    "total_terminals": 106,
+    "total_timeout": 54,
+    "total_base_contact": 2,
+    "total_bad_orientation": 50,
+    "timeout_fraction": 0.5094339622641509,
+    "base_contact_fraction": 0.018867924528301886,
+    "bad_orientation_fraction": 0.4716981132075472,
+    "avg_vel_error": 0.27047530381561635,
+    "avg_yaw_error": 0.10423917564880716
+}

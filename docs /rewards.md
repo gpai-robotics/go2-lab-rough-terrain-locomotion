@@ -149,7 +149,7 @@ $$
 | Velocity tracking | + | Exponential kernel; primary training signal |
 | Body roll | − | Quadratic in roll angle |
 | Pitch rate | − | Quadratic in pitch rate |
-| Foot height | - | Active only during swing; velocity-gated |
+| Foot height | + | Active only during swing; velocity-gated |
 | Joint position | − | Weight increased to suppress wide gait |
 | Stable progress | + | Combines forward progress with stability |
 | Energy / torque | − | Standard penalties from unitree_rl_lab |

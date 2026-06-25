@@ -1,0 +1,13 @@
+{
+    "description": "Stairs Up Task Final AsymPPO checkpoint",
+    "timestamp": "2026-06-24_15-52-31",
+    "total_terminals": 106,
+    "total_timeout": 96,
+    "total_base_contact": 0,
+    "total_bad_orientation": 10,
+    "timeout_fraction": 0.9056603773584906,
+    "base_contact_fraction": 0.0,
+    "bad_orientation_fraction": 0.09433962264150944,
+    "avg_vel_error": 0.20595713838552818,
+    "avg_yaw_error": 0.08543031801206943
+}

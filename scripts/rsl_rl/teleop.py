@@ -59,56 +59,11 @@ from isaaclab.utils.dict import print_dict
 # from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
 from isaaclab_tasks.utils import get_checkpoint_path
+from isaaclab.devices import Se2Keyboard, Se2KeyboardCfg
 
 import trakr_rl.tasks  # noqa: F401
 from trakr_rl.utils.parser_cfg import parse_env_cfg
 from pynput import keyboard
-
-
-vx = 0.0
-vy = 0.0
-yaw = 0.0
-
-def on_release(key):
-    global vx, vy, yaw
-
-    try:
-        if key.char in ["w", "s"]:
-            vx = 0.0
-
-        elif key.char in ["a", "d"]:
-            vy = 0.0
-
-        elif key.char in ["q", "e"]:
-            yaw = 0.0
-
-    except:
-        pass
-
-def on_press(key):
-    global vx, vy, yaw
-
-    try:
-        if key.char == "w":
-            vy = 0.8
-
-        elif key.char == "s":
-            vy = -0.8
-
-        elif key.char == "a":
-            vx = -0.5
-
-        elif key.char == "d":
-            vx = 0.5
-
-        elif key.char == "q":
-            yaw = 1.0
-
-        elif key.char == "e":
-            yaw = -1.0
-
-    except:
-        pass
 
 def main():
     """Play with RSL-RL agent."""
@@ -199,20 +154,18 @@ def main():
     export_policy_as_jit(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.pt")
     export_policy_as_onnx(policy_nn, normalizer=normalizer, path=export_model_dir, filename="policy.onnx")
 
-
-    listener = keyboard.Listener(
-        on_press=on_press,
-        on_release=on_release
+    keyboard = Se2Keyboard(
+    Se2KeyboardCfg(
+        v_x_sensitivity=0.8,
+        v_y_sensitivity=0.5,
+        omega_z_sensitivity=1.0,
+        sim_device=env.unwrapped.device,
     )
+)
 
-    listener.start()
+    keyboard.reset()
 
-    print("""
-    Teleop controls:
-    W/S : forward/back
-    A/D : strafe left/right
-    Q/E : rotate
-    """)
+    print(keyboard)
 
     dt = env.unwrapped.step_dt
 
@@ -223,16 +176,25 @@ def main():
     timestep = 0
     # simulate environment
     while simulation_app.is_running():
+
         start_time = time.time()
 
         with torch.inference_mode():
 
-            command = torch.tensor(
-                [[vx, vy, yaw]],
-                device=env.unwrapped.device
-            ).repeat(env.num_envs, 1)
+            temp_command = keyboard.advance()
 
-            # overwrite sampled commands
+            temp_command = temp_command.unsqueeze(0).repeat(
+                env.num_envs,
+                1
+            )
+            
+            command = temp_command.clone()
+            command[:, :2] = torch.stack(
+                (
+                    -temp_command[:,1],
+                    temp_command[:,0]
+                ),dim=1)
+            
             env.unwrapped.command_manager._terms[
                 "base_velocity"
             ].command[:] = command
@@ -243,16 +205,15 @@ def main():
 
         if args_cli.video:
             timestep += 1
-            # Exit the play loop after recording one video
             if timestep == args_cli.video_length:
                 break
 
-        # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
 
-    # close the simulator
+    # close the simulator and keyboard
+    del keyboard
     env.close()
 
 
