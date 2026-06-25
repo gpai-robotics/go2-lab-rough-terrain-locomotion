@@ -46,16 +46,16 @@ COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
         #     proportion=0.2, grid_width=0.45, grid_height_range=(0.05, 0.2), platform_width=2.0
         # ),
         "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
-            proportion=0.2,
-            step_height_range=(0.08, 0.15),
+            proportion=0.3,
+            step_height_range=(0.08, 0.17),
             step_width=0.3,
             platform_width=3.0,
             border_width=1.0,
             holes=False,
         ),
         "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-            proportion=0.2,
-            step_height_range=(0.08, 0.15),
+            proportion=0.7,
+            step_height_range=(0.08, 0.17),
             step_width=0.3,
             platform_width=3.0,
             border_width=1.0,
@@ -195,10 +195,10 @@ class CommandsCfg:
         rel_standing_envs=0.1,
         debug_vis=True,
         ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.0), ang_vel_z=(0.0, 0.0)
+            lin_vel_x=(-0.3, 0.3), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-0.5, 0.5)
         ),
         limit_ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.5, 1.0), ang_vel_z=(0.0, 0.0)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0)
         ),
     )
 
@@ -291,8 +291,6 @@ class RewardsCfg:
     # -- robot
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-2.5)
 
-    # roll_rate_penalty = RewTerm(func=mdp.roll_rate_penalty, weight=-2.0)
-
     stable_progress = RewTerm(
         func=mdp.stable_progress,
         weight=3.0
@@ -371,7 +369,7 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base_link"), "threshold": 1.0},  # Updated body_name from 'base' to 'base_link' to match the trakr_imu.usd file
     )
-    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.8})
+    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 1.0})
 
 
 @configclass
@@ -428,7 +426,7 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
 class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.scene.num_envs = 8
+        self.scene.num_envs = 16
         self.scene.terrain.terrain_generator.num_rows = 3
         self.scene.terrain.terrain_generator.num_cols = 3
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges

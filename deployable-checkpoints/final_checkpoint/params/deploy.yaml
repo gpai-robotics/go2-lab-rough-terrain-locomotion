@@ -6,9 +6,9 @@ default_joint_pos: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 commands:
   base_velocity:
     ranges:
-      lin_vel_x: [0.0, 0.0]
-      lin_vel_y: [0.5, 1.0]
-      ang_vel_z: [0.0, 0.0]
+      lin_vel_x: [-1.0, 1.0]
+      lin_vel_y: [-1.0, 1.0]
+      ang_vel_z: [-1.0, 1.0]
       heading: null
 actions:
   JointPositionAction:
