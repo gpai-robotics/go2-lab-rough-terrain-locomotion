@@ -25,6 +25,14 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.config.go2.rough_env_cfg import (
     UnitreeGo2RoughEnvCfg,
 )
+from isaaclab.assets import Articulation
+from isaaclab.envs import ManagerBasedEnv
+
+
+try:
+    from isaaclab.utils.math import quat_apply_inverse
+except ImportError:
+    from isaaclab.utils.math import quat_rotate_inverse as quat_apply_inverse
 
 from go2_rough.envs.asset_contract import base_body_name, foot_body_regex, go2_usd_path, print_asset_contract
 
@@ -121,6 +129,59 @@ def low_progress_termination(
         & (planar_displacement < min_displacement)
         & (planar_speed < min_planar_speed)
     )
+
+def stable_progress(
+    env: ManagerBasedEnv,
+    command_name: str = "base_velocity",
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    "Rewards progress along the commanded velocity direction with a stable gait."
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    cmd = env.command_manager.get_command(command_name)
+    cmd_vel =  torch.linalg.norm(cmd[:, :2], dim=1)
+    cmd_dir = cmd[:, :2] / (torch.linalg.norm(cmd[:, :2], dim=1, keepdim=True) + 1e-6)
+
+    robot_vel = asset.data.root_lin_vel_b[:, :2]
+    lin_vel = torch.sum(robot_vel * cmd_dir, dim=1)
+    lin_vel = torch.clamp(lin_vel, min=0.0)
+    
+    omega = asset.data.root_ang_vel_b[:, :2]
+    roll_rate = omega[:, 0]
+    pitch_rate = omega[:, 1]
+
+    stability = torch.exp(-2.0 * (roll_rate ** 2 + pitch_rate ** 2))
+
+    return torch.where(cmd_vel > 0.1, lin_vel * stability, torch.zeros_like(lin_vel))
+
+def feet_height_body(
+        env: ManagerBasedEnv,
+        command_name: str,
+        target_height: float,
+        tanh_mult: float,
+        asset_cfg: SceneEntityCfg = SceneEntityCfg("robot", body_names=".*_foot"),
+) -> torch.Tensor:
+    
+    asset: Articulation = env.scene[asset_cfg.name]
+    cur_footpos_translated = asset.data.body_pos_w[:, asset_cfg.body_ids, :] - asset.data.root_pos_w[:, :].unsqueeze(1)
+    cur_footvel_translated = asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :] - asset.data.root_lin_vel_w[
+        :, :
+    ].unsqueeze(1)
+    num_bodies = cur_footpos_translated.shape[1]
+    root_quat = asset.data.root_quat_w.unsqueeze(1).expand(-1, num_bodies, -1).reshape(-1, 4)
+    footpos_in_body_frame = quat_apply_inverse(root_quat, cur_footpos_translated.reshape(-1, 3)).reshape(
+        env.num_envs, num_bodies, 3
+    )
+    footvel_in_body_frame = quat_apply_inverse(root_quat, cur_footvel_translated.reshape(-1, 3)).reshape(
+        env.num_envs, num_bodies, 3
+    )
+    foot_z_target_error = torch.square(footpos_in_body_frame[:, :, 2] - target_height).view(env.num_envs, -1)
+    foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(footvel_in_body_frame[:, :, :2], dim=2))
+    reward = torch.sum(foot_z_target_error *     foot_velocity_tanh, dim=1)
+    reward *= torch.linalg.norm(env.command_manager.get_command(command_name), dim=1) > 0.1
+    # reward *= torch.clamp(-env.scene["robot"].data.projected_gravity_b[:, 2], 0, 0.7) / 0.7
+    return reward
+
 
 @configclass
 class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
@@ -264,3 +325,19 @@ class Go2AsymPpoRoughBaseEnvCfg(UnitreeGo2RoughEnvCfg):
 
         # Reduce terrain-coupled and rough-terrain collision shaping.
         self.rewards.undesired_contacts = None
+
+        self.rewards.stable_progress = RewTerm(
+            func=stable_progress,
+            weight=1.0,
+        )
+
+        self.rewards.feet_height_body = RewTerm(
+            func=feet_height_body,
+            weight=-0.5,
+            params={
+                "command_name": "base_velocity",
+                "target_height": 0.18,
+                "tanh_mult": 10.0,
+                "asset_cfg": SceneEntityCfg("robot", body_names=foot_body_regex()),
+            },
+        )
