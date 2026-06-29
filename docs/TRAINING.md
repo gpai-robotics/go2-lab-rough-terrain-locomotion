@@ -20,6 +20,14 @@ bash scripts/isaaclab_user.sh -p scripts/train_flat_prior.py \
 The flat prior is used only as an actor warmstart. It is not deployed as the
 rough-terrain controller.
 
+RSL-RL checkpoints are written inside the chosen `--log-dir`. For the default
+run shape, the warmstart input to Stage 2 is typically the final
+checkpoint:
+
+```text
+~/isaaclab_logs/go2_flat_mjlab_prior_v1/model_1499.pt
+```
+
 ## Asset Naming Contract
 
 Training uses the bundled Go2 USD by default:
@@ -70,6 +78,18 @@ bash scripts/isaaclab_user.sh -p scripts/train_asymppo.py \
 
 Do not add a standalone `/` between command arguments. It will be parsed as an
 unknown argument by the training script.
+
+RSL-RL writes the rough-policy checkpoints under the chosen `--log-dir`. The
+expected export input for the deployment lane is typically the final numbered
+checkpoint:
+
+```text
+~/isaaclab_logs/go2_blind_rough_asymppo_mjlab_v1/model_1999.pt
+```
+
+If you want to inspect the trained policy in IsaacLab, export it, or run the
+MuJoCo validation lane, continue with `docs/REPRODUCTION.md` and
+`docs/RUN_COMMANDS.md`.
 
 For shared `/opt` IsaacLab installs, always launch through
 `scripts/isaaclab_user.sh`. It redirects mutable Kit cache/log/temp files to the
@@ -123,5 +143,5 @@ yaw impulse command: [-0.4, 0.4]
 ## Notes
 
 The successful branch did not rely on extreme gain randomization. Wider gain
-randomization hurt learning in our tests, so this public path keeps the narrower
+randomization hurt learning in our tests, so this path keeps the narrower
 deployment-proven envelope.

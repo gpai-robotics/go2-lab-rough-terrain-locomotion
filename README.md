@@ -10,8 +10,7 @@
   <a href="https://www.youtube.com/watch?v=oOYZdeQDaec"><strong>Watch the real Go2 deployment video</strong></a>
 </p>
 
-Clean public release of the successful Unitree Go2 blind rough-terrain
-locomotion path.
+Go2 blind rough-terrain locomotion training and deployment stack.
 
 This repo intentionally publishes one active line:
 
@@ -19,10 +18,26 @@ This repo intentionally publishes one active line:
 - blind rough-terrain asymmetric PPO policy
 - deployable actor observations only at runtime
 - privileged critic observations only during training
-- MuJoCo/Unitree FSM validation before real hardware
+- MuJoCo validation before real hardware
 
 Older experimental branches and adaptation experiments are not part of this
-public surface.
+repository.
+
+## What This Repo Covers
+
+This repo is self-contained for:
+
+- IsaacLab task registration
+- flat-prior training
+- rough AsymPPO training
+- the active deployable observation and action contract
+- deploy-bundle export and structural validation
+- source-vs-export parity checks
+- MuJoCo sim2sim with a Go2 MuJoCo model
+- read-only DDS probe, realtime monitor, and hardware bring-up helpers
+
+The deploy/runtime scripts live in `scripts/deploy/` and are designed around
+documented external prerequisites.
 
 ## Core Idea
 
@@ -93,6 +108,8 @@ Check task registration:
 bash scripts/isaaclab_user.sh -p scripts/doctor_isaaclab.py
 bash scripts/isaaclab_user.sh -p scripts/check_tasks.py
 ```
+
+For the shortest end-to-end path, read `docs/REPRODUCTION.md`.
 
 Train the flat prior:
 
@@ -167,15 +184,19 @@ The intended path is:
 1. Train in IsaacLab.
 2. Export a deployment bundle.
 3. Validate inference parity.
-4. Run MuJoCo/Unitree FSM sim2sim.
+4. Run MuJoCo sim2sim.
 5. Run read-only DDS probe on the robot.
 6. Run hardware over Ethernet first.
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+See:
+
+- [docs/REPRODUCTION.md](docs/REPRODUCTION.md)
+- [docs/RUN_COMMANDS.md](docs/RUN_COMMANDS.md)
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Demo Media
 
-The top banner links to the real hardware deployment video. The public media
+The top banner links to the real hardware deployment video. The media
 lane should show the active AsymPPO/MuJoCo path only. Do not reuse media from
 older experimental branches under this repo.
 
@@ -189,7 +210,42 @@ assets/thumbs/
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md)
+- [docs/REPRODUCTION.md](docs/REPRODUCTION.md)
 - [docs/TRAINING.md](docs/TRAINING.md)
+- [docs/RUN_COMMANDS.md](docs/RUN_COMMANDS.md)
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - [docs/VALIDATION.md](docs/VALIDATION.md)
 - [docs/LIMITATIONS.md](docs/LIMITATIONS.md)
+
+## Local Export Core
+
+The active deploy surface now lives in `scripts/deploy/`:
+
+- `scripts/deploy/package_candidate.py`
+- `scripts/deploy/export_policy.py`
+- `scripts/deploy/validate_bundle.py`
+- `scripts/deploy/validate_policy_inference_parity.py`
+- `scripts/deploy/play_deploy_policy.py`
+- `scripts/deploy/run_deployment_validation_gate.py`
+- `scripts/deploy/run_sim2sim.py`
+- `scripts/deploy/probe_go2_readonly.py`
+- `scripts/deploy/monitor_go2_realtime.py`
+- `scripts/deploy/run_go2_hardware.py`
+
+Example:
+
+```bash
+bash scripts/isaaclab_user.sh -p scripts/deploy/export_policy.py \
+  --policy-name go2_blind_rough_asymppo_mjlab_v1_candidate \
+  --checkpoint ~/isaaclab_logs/go2_blind_rough_asymppo_mjlab_v1/model_1999.pt \
+  --task Go2-Blind-Rough-MJLAB-AsymPPO-V1 \
+  --phase blind-rough-mjlab-asymppo-v1 \
+  --policy-kind blind_history_policy \
+  --observation-groups policy,policy_history \
+  --format torchscript \
+  --format onnx
+
+python scripts/deploy/validate_bundle.py \
+  --bundle-dir artifacts/exported/go2_blind_rough_asymppo_mjlab_v1_candidate
+```

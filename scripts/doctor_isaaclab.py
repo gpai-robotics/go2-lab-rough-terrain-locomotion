@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preflight checks for the public Go2 rough-terrain IsaacLab setup."""
+"""Preflight checks for the Go2 rough-terrain IsaacLab setup."""
 
 from __future__ import annotations
 

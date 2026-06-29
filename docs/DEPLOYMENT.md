@@ -1,5 +1,21 @@
 # Deployment
 
+## Scope
+
+This repo defines the active deployable actor contract and the validation order
+used by the reported Go2 result. It now includes local scripts for:
+
+- bundle export,
+- structural validation,
+- source-vs-export parity,
+- deploy-side Isaac rehearsal,
+- MuJoCo sim2sim,
+- read-only DDS probe and realtime monitor,
+- hardware bring-up against a Unitree Python SDK checkout.
+
+Use `docs/REPRODUCTION.md` for the full path and `docs/RUN_COMMANDS.md` for
+copy-paste commands.
+
 ## Contract
 
 The exported policy must preserve this runtime contract:
@@ -47,12 +63,62 @@ Use this order:
 
 1. IsaacLab rollout/play.
 2. Export parity check.
-3. MuJoCo sim2sim using the Unitree FSM runtime.
+3. MuJoCo sim2sim.
 4. Read-only DDS probe.
 5. Stance-only hardware bring-up.
 6. Slow forward hardware command.
 7. Yaw/lateral commands.
 8. Rough-terrain hardware tests.
+
+In this workflow, the concrete tools are:
+
+1. local `scripts/deploy/export_policy.py`
+2. local `scripts/deploy/validate_bundle.py`
+3. local `scripts/deploy/validate_policy_inference_parity.py`
+4. local `scripts/deploy/play_deploy_policy.py`
+5. local `scripts/deploy/run_deployment_validation_gate.py`
+6. local `scripts/deploy/run_sim2sim.py`
+7. local `scripts/deploy/probe_go2_readonly.py`
+8. local `scripts/deploy/run_go2_hardware.py`
+
+## Expected Export Bundle
+
+The active AsymPPO lane expects an exported bundle that contains at least:
+
+```text
+bundle_manifest.json
+*.torchscript.pt
+*.onnx
+*.export_metadata.json
+*.deploy_config.json
+*.deploy.yaml
+export_request.json
+```
+
+The validation gate checks the recorded tensor contract against the deployable
+actor interface published by this repo:
+
+```text
+policy_obs_dim = 45
+policy_history_dim = 4500
+history_length = 100
+action_dim = 12
+```
+
+## Public External Dependencies
+
+MuJoCo sim2sim requires:
+
+- Python package `mujoco`
+- Python package `torch`
+- a Go2 MuJoCo scene XML
+
+Hardware bring-up requires:
+
+- a `unitree_sdk2py` checkout or install
+- a reachable robot network interface
+- optionally a mode-switch helper script if you want this repo's runner to
+  switch into low-level mode for you
 
 ## Network
 

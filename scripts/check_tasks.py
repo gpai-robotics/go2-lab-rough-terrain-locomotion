@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sanity-check that the public Gym tasks register correctly."""
+"""Sanity-check that the Gym tasks register correctly."""
 
 from __future__ import annotations
 

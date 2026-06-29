@@ -1,1 +1,1 @@
-"""Environment configs for the public Go2 rough locomotion path."""
+"""Environment configs for the Go2 rough locomotion path."""

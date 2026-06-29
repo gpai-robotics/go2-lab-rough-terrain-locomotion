@@ -1,4 +1,4 @@
-"""Usable-range rough-terrain omni branch for the public AsymPPO path."""
+"""Usable-range rough-terrain omni branch for the active AsymPPO path."""
 
 from __future__ import annotations
 
