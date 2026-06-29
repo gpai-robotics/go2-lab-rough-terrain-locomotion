@@ -7,4 +7,5 @@
 - `RUN_COMMANDS.md`: copy-paste command reference for the active AsymPPO lane
 - `DEPLOYMENT.md`: deployment contract and safety order
 - `VALIDATION.md`: simulator and hardware validation gates
+- `UNITREE_MJLAB_RUNTIME_BUILD.md`: optional C++ Unitree MJLAB FSM runtime patch/build/recovery flow
 - `LIMITATIONS.md`: what this branch does not try to solve

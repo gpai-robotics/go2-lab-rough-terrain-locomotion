@@ -24,9 +24,10 @@ Expected flow:
   3. Run bundle validation and parity checks.
   4. Run the local MuJoCo validation gate.
   5. Run the local MuJoCo bridge.
-  6. Run a read-only DDS probe before any hardware controller.
-  7. Dry-run the hardware contract.
-  8. Bring up hardware over Ethernet first.
+  6. Optionally stage the Unitree RL MJLAB C++ FSM runtime.
+  7. Run a read-only DDS probe before any hardware controller.
+  8. Dry-run the hardware contract.
+  9. Bring up hardware over Ethernet first.
 
 Copy-paste starting points:
 
@@ -54,6 +55,17 @@ Copy-paste starting points:
     --model-path "\${GO2_MUJOCO_MODEL}" \\
     --execute-runtime
 
+  # Optional closest-to-deployed C++ FSM runtime:
+  cd "${REPO_ROOT}"
+  git clone https://github.com/unitreerobotics/unitree_rl_mjlab.git \\
+    reference_repos/unitree_rl_mjlab
+  cd reference_repos/unitree_rl_mjlab
+  git apply ../../patches/unitree_rl_mjlab/go2_scripted_controller.patch
+  cd "${REPO_ROOT}"
+  bash scripts/deploy/build_unitree_mjlab_runtime.sh all
+  bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh activate
+  bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh validate
+
   cd "${REPO_ROOT}"
   python scripts/deploy/probe_go2_readonly.py \\
     --net-if "\${GO2_ETH_IF:-eth0}" \\
@@ -75,4 +87,5 @@ Prerequisites to set yourself:
 See also:
   ${REPO_ROOT}/docs/REPRODUCTION.md
   ${REPO_ROOT}/docs/RUN_COMMANDS.md
+  ${REPO_ROOT}/docs/UNITREE_MJLAB_RUNTIME_BUILD.md
 EOF
