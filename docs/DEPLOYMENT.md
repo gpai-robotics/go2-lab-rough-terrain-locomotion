@@ -11,7 +11,8 @@ used by the reported Go2 result. It now includes local scripts for:
 - deploy-side Isaac rehearsal,
 - MuJoCo sim2sim,
 - read-only DDS probe and realtime monitor,
-- hardware bring-up against a Unitree Python SDK checkout.
+- hardware bring-up against a Unitree Python SDK checkout,
+- optional Unitree RL MJLAB C++ FSM sim/controller/hardware runtime staging.
 
 Use `docs/REPRODUCTION.md` for the full path and `docs/RUN_COMMANDS.md` for
 copy-paste commands.
@@ -81,6 +82,17 @@ In this workflow, the concrete tools are:
 7. local `scripts/deploy/probe_go2_readonly.py`
 8. local `scripts/deploy/run_go2_hardware.py`
 
+For the exact recovered Unitree RL MJLAB C++ FSM runtime, use:
+
+1. `patches/unitree_rl_mjlab/go2_scripted_controller.patch`
+2. `scripts/deploy/build_unitree_mjlab_runtime.sh`
+3. `scripts/deploy/prepare_unitree_rl_mjlab_go2_runtime.py`
+4. `scripts/deploy/validate_unitree_mjlab_go2_fsm_runtime.py`
+5. `scripts/deploy/run_unitree_mjlab_sim_deploy.sh`
+
+That path is documented in
+`docs/UNITREE_MJLAB_RUNTIME_BUILD.md`.
+
 ## Expected Export Bundle
 
 The active AsymPPO lane expects an exported bundle that contains at least:
@@ -119,6 +131,13 @@ Hardware bring-up requires:
 - a reachable robot network interface
 - optionally a mode-switch helper script if you want this repo's runner to
   switch into low-level mode for you
+
+The C++ FSM runtime additionally requires:
+
+- an external `unitree_rl_mjlab` clone
+- an external or wrapper-built `unitree_sdk2` C++ install
+- the repo patch applied before building
+- ONNX export in the deployment bundle
 
 ## Network
 

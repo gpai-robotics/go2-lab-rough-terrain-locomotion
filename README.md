@@ -35,6 +35,7 @@ This repo is self-contained for:
 - source-vs-export parity checks
 - MuJoCo sim2sim with a Go2 MuJoCo model
 - read-only DDS probe, realtime monitor, and hardware bring-up helpers
+- optional Unitree RL MJLAB C++ FSM runtime patch/build/staging flow
 
 The deploy/runtime scripts live in `scripts/deploy/` and are designed around
 documented external prerequisites.
@@ -215,6 +216,7 @@ assets/thumbs/
 - [docs/TRAINING.md](docs/TRAINING.md)
 - [docs/RUN_COMMANDS.md](docs/RUN_COMMANDS.md)
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- [docs/UNITREE_MJLAB_RUNTIME_BUILD.md](docs/UNITREE_MJLAB_RUNTIME_BUILD.md)
 - [docs/VALIDATION.md](docs/VALIDATION.md)
 - [docs/LIMITATIONS.md](docs/LIMITATIONS.md)
 

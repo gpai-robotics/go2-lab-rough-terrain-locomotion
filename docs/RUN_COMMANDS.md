@@ -155,3 +155,72 @@ python scripts/deploy/run_go2_hardware.py \
   --stance-only \
   --duration-s 5
 ```
+
+## Unitree RL MJLAB C++ FSM Runtime
+
+This is the closest runtime to the validated deployment path. It requires the
+external `unitree_rl_mjlab` C++ repository, but the patch/build/activation
+flow is owned here.
+
+Clone and patch the external runtime:
+
+```bash
+cd "$REPO"
+git clone https://github.com/unitreerobotics/unitree_rl_mjlab.git \
+  reference_repos/unitree_rl_mjlab
+
+cd reference_repos/unitree_rl_mjlab
+git apply ../../patches/unitree_rl_mjlab/go2_scripted_controller.patch
+cd "$REPO"
+```
+
+Build the controller and simulator:
+
+```bash
+cd "$REPO"
+bash scripts/deploy/build_unitree_mjlab_runtime.sh all
+```
+
+Stage the exported AsymPPO bundle into the C++ runtime and validate the FSM
+contract:
+
+```bash
+cd "$REPO"
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh activate
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh validate
+```
+
+Run sim/controller in two terminals:
+
+```bash
+# terminal 1
+cd "$REPO"
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh controller
+```
+
+```bash
+# terminal 2
+cd "$REPO"
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh sim
+```
+
+C++ FSM hardware path:
+
+```bash
+cd "$REPO"
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh dds-probe ethernet
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh hardware ethernet
+```
+
+While hardware is running, monitor LowState/LowCmd in another terminal:
+
+```bash
+cd "$REPO"
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh monitor ethernet asymppo_walk
+```
+
+Detailed runtime recovery notes:
+
+```text
+docs/UNITREE_MJLAB_RUNTIME_BUILD.md
+```

@@ -1,0 +1,244 @@
+diff --git a/deploy/include/FSM/FSMState.h b/deploy/include/FSM/FSMState.h
+index cbbc2af..f7402b8 100644
+--- a/deploy/include/FSM/FSMState.h
++++ b/deploy/include/FSM/FSMState.h
+@@ -1,5 +1,11 @@
+ #pragma once
+ 
++#include <algorithm>
++#include <chrono>
++#include <cmath>
++#include <cstdlib>
++#include <string>
++
+ #include "Types.h"
+ #include "param.h"
+ #include "FSM/BaseState.h"
+@@ -57,6 +63,7 @@ public:
+     {
+         lowstate->update();
+         if(keyboard) keyboard->update();
++        apply_scripted_joystick();
+     }
+ 
+     void post_run()
+@@ -67,4 +74,88 @@ public:
+     static std::unique_ptr<LowCmd_t> lowcmd;
+     static std::shared_ptr<LowState_t> lowstate;
+     static std::shared_ptr<Keyboard> keyboard;
+-};
+\ No newline at end of file
++
++private:
++    static bool env_enabled(const char* name, bool default_value = false)
++    {
++        const char* value = std::getenv(name);
++        if(!value) return default_value;
++        std::string text(value);
++        return !(text.empty() || text == "0" || text == "false" || text == "False" || text == "FALSE");
++    }
++
++    static double env_double(const char* name, double default_value)
++    {
++        const char* value = std::getenv(name);
++        if(!value) return default_value;
++        try
++        {
++            return std::stod(value);
++        }
++        catch(...)
++        {
++            return default_value;
++        }
++    }
++
++    static bool in_window(double elapsed, double start, double duration, double repeat_period)
++    {
++        if(repeat_period > 0.0 && elapsed >= repeat_period)
++        {
++            elapsed = std::fmod(elapsed, repeat_period);
++        }
++        return elapsed >= start && elapsed < (start + duration);
++    }
++
++    static void apply_scripted_joystick()
++    {
++        if(!env_enabled("UNITREE_MJLAB_AUTOSTART")) return;
++        if(!lowstate) return;
++
++        static const auto start_time = std::chrono::steady_clock::now();
++        const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
++
++        const double button_duration = env_double("UNITREE_MJLAB_BUTTON_DURATION", 1.0);
++        const double repeat_period = env_double("UNITREE_MJLAB_REPEAT_PERIOD", 0.0);
++        const double fixstand_time = env_double("UNITREE_MJLAB_FIXSTAND_TIME", 0.1);
++        const double velocity_time = env_double("UNITREE_MJLAB_VELOCITY_TIME", 4.0);
++
++        auto& joy = lowstate->joystick;
++        const bool press_fixstand = in_window(elapsed, fixstand_time, button_duration, repeat_period);
++        const bool press_velocity = in_window(elapsed, velocity_time, button_duration, repeat_period);
++
++        joy.LT(press_fixstand ? 1.0f : 0.0f);
++        joy.up(press_fixstand ? 1 : 0);
++        joy.RT(press_velocity ? 1.0f : 0.0f);
++        joy.A(press_velocity ? 1 : 0);
++
++        double vx = env_double("UNITREE_MJLAB_VX", 0.3);
++        double vy = env_double("UNITREE_MJLAB_VY", 0.0);
++        double yaw = env_double("UNITREE_MJLAB_YAW", 0.0);
++
++        if(env_enabled("UNITREE_MJLAB_TELEOP"))
++        {
++            const double linear = env_double("UNITREE_MJLAB_TELEOP_LINEAR", 0.8);
++            const double lateral = env_double("UNITREE_MJLAB_TELEOP_LATERAL", 0.6);
++            const double yaw_rate = env_double("UNITREE_MJLAB_TELEOP_YAW", 0.8);
++            vx = 0.0;
++            vy = 0.0;
++            yaw = 0.0;
++
++            if(keyboard)
++            {
++                const std::string key = keyboard->key();
++                if(key == "w" || key == "up") vx = linear;
++                else if(key == "s" || key == "down") vx = -linear;
++                else if(key == "a" || key == "left") vy = lateral;
++                else if(key == "d" || key == "right") vy = -lateral;
++                else if(key == "q") yaw = yaw_rate;
++                else if(key == "e") yaw = -yaw_rate;
++            }
++        }
++
++        joy.ly(static_cast<float>(std::clamp(vx, -1.0, 1.0)));
++        joy.lx(static_cast<float>(std::clamp(-vy, -1.0, 1.0)));
++        joy.rx(static_cast<float>(std::clamp(-yaw, -1.0, 1.0)));
++    }
++};
+diff --git a/deploy/include/isaaclab/algorithms/algorithms.h b/deploy/include/isaaclab/algorithms/algorithms.h
+index 3e66adb..f2a7fc0 100644
+--- a/deploy/include/isaaclab/algorithms/algorithms.h
++++ b/deploy/include/isaaclab/algorithms/algorithms.h
+@@ -39,7 +39,13 @@ public:
+ 
+         for (size_t i = 0; i < session->GetInputCount(); ++i) {
+             Ort::TypeInfo input_type = session->GetInputTypeInfo(i);
+-            input_shapes.push_back(input_type.GetTensorTypeAndShapeInfo().GetShape());
++            auto shape = input_type.GetTensorTypeAndShapeInfo().GetShape();
++            for (auto& dim : shape) {
++                if (dim < 0) {
++                    dim = 1;
++                }
++            }
++            input_shapes.push_back(shape);
+             auto input_name = session->GetInputNameAllocated(i, allocator);
+             input_names.push_back(input_name.release());
+         }
+@@ -55,6 +61,11 @@ public:
+         // Get output shape
+         Ort::TypeInfo output_type = session->GetOutputTypeInfo(0);
+         output_shape = output_type.GetTensorTypeAndShapeInfo().GetShape();
++        for (auto& dim : output_shape) {
++            if (dim < 0) {
++                dim = 1;
++            }
++        }
+         auto output_name = session->GetOutputNameAllocated(0, allocator);
+         output_names.push_back(output_name.release());
+ 
+@@ -105,4 +116,4 @@ private:
+     std::vector<int64_t> input_sizes;
+     std::vector<int64_t> output_shape;
+ };
+-};
+\ No newline at end of file
++};
+diff --git a/deploy/robots/go2/main.cpp b/deploy/robots/go2/main.cpp
+index f1c2607..5d98518 100644
+--- a/deploy/robots/go2/main.cpp
++++ b/deploy/robots/go2/main.cpp
+@@ -3,10 +3,24 @@
+ #include "FSM/State_FixStand.h"
+ #include "FSM/State_RLBase.h"
+ 
++#include <cstdlib>
++#include <string>
++
+ std::unique_ptr<LowCmd_t> FSMState::lowcmd = nullptr;
+ std::shared_ptr<LowState_t> FSMState::lowstate = nullptr;
+ std::shared_ptr<Keyboard> FSMState::keyboard = nullptr;
+ 
++namespace
++{
++bool env_enabled(const char* name)
++{
++    const char* value = std::getenv(name);
++    if(!value) return false;
++    std::string text(value);
++    return !(text.empty() || text == "0" || text == "false" || text == "False" || text == "FALSE");
++}
++}
++
+ void init_fsm_state()
+ {
+     auto lowcmd_sub = std::make_shared<unitree::robot::go2::subscription::LowCmd>();
+@@ -37,12 +51,37 @@ int main(int argc, char** argv)
+ 
+     init_fsm_state();
+ 
++    if(env_enabled("UNITREE_MJLAB_TELEOP"))
++    {
++        FSMState::keyboard = std::make_shared<Keyboard>();
++        std::cout
++            << "Keyboard teleop enabled: hold W/S/A/D or arrow keys for vx/vy, "
++            << "Q/E for yaw.\n";
++    }
++
+     // Initialize FSM
+     auto fsm = std::make_unique<CtrlFSM>(param::config["FSM"]);
+     fsm->start();
+ 
+     std::cout << "Press [L2 + up] to enter FixStand mode.\n";
+     std::cout << "And then press [R2 + A] to start controlling the robot.\n";
++    if(env_enabled("UNITREE_MJLAB_AUTOSTART"))
++    {
++        std::cout
++            << "Using scripted controller: FixStand@"
++            << (std::getenv("UNITREE_MJLAB_FIXSTAND_TIME") ? std::getenv("UNITREE_MJLAB_FIXSTAND_TIME") : "0.1")
++            << "s Velocity@"
++            << (std::getenv("UNITREE_MJLAB_VELOCITY_TIME") ? std::getenv("UNITREE_MJLAB_VELOCITY_TIME") : "4.0")
++            << "s repeat="
++            << (std::getenv("UNITREE_MJLAB_REPEAT_PERIOD") ? std::getenv("UNITREE_MJLAB_REPEAT_PERIOD") : "0")
++            << "s command=["
++            << (std::getenv("UNITREE_MJLAB_VX") ? std::getenv("UNITREE_MJLAB_VX") : "0.3")
++            << ", "
++            << (std::getenv("UNITREE_MJLAB_VY") ? std::getenv("UNITREE_MJLAB_VY") : "0.0")
++            << ", "
++            << (std::getenv("UNITREE_MJLAB_YAW") ? std::getenv("UNITREE_MJLAB_YAW") : "0.0")
++            << "]\n";
++    }
+ 
+     while (true)
+     {
+@@ -51,4 +90,3 @@ int main(int argc, char** argv)
+     
+     return 0;
+ }
+-
+diff --git a/simulate/src/param.h b/simulate/src/param.h
+index 76d1137..3a1c1d0 100644
+--- a/simulate/src/param.h
++++ b/simulate/src/param.h
+@@ -63,6 +63,7 @@ inline po::variables_map helper(int argc, char** argv)
+         ("network,n", po::value<std::string>(&config.interface), "DDS network interface; -n eth0")
+         ("robot,r", po::value<std::string>(&config.robot), "Robot type; -r go2")
+         ("scene,s", po::value<std::filesystem::path>(&config.robot_scene), "Robot scene file; -s scene_terrain.xml")
++        ("use_joystick", po::value<int>(&config.use_joystick), "Simulate Unitree WirelessController using a gamepad; 0 or 1")
+     ;
+ 
+     po::variables_map vm;
+@@ -78,4 +79,4 @@ inline po::variables_map helper(int argc, char** argv)
+     return vm;
+ }
+ 
+-}
+\ No newline at end of file
++}

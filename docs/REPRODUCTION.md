@@ -7,8 +7,9 @@ This repo provides a standalone Go2 rough-terrain path:
 3. export a deployment bundle,
 4. validate parity locally,
 5. run MuJoCo sim2sim with the repo-owned Python bridge,
-6. run read-only DDS checks,
-7. bring up hardware only after the earlier gates pass.
+6. optionally stage the Unitree RL MJLAB C++ FSM runtime,
+7. run read-only DDS checks,
+8. bring up hardware only after the earlier gates pass.
 
 ## Public Prerequisites
 
@@ -37,6 +38,10 @@ Additional prerequisites by stage:
   - a `unitree_sdk2py` checkout or install
   - a valid network path to the robot
   - an optional mode-switch helper script if you want the runner to switch into low-level mode for you
+- Unitree RL MJLAB C++ FSM runtime:
+  - external `unitree_rl_mjlab` clone under `reference_repos/unitree_rl_mjlab`
+  - repo patch applied before build
+  - `unitree_sdk2` C++ install, either system-wide or wrapper-built locally
 
 Install this package into Isaac Sim Python:
 
@@ -206,7 +211,47 @@ python scripts/deploy/run_sim2sim.py \
   --max-steps 900
 ```
 
-## Step 7: Read-Only DDS Probe
+## Step 7: Optional Unitree RL MJLAB C++ FSM Runtime
+
+Use this path when you want the two-terminal sim/controller workflow and the
+same FSM-style runtime used for the validated hardware deployment.
+
+Clone and patch the external runtime:
+
+```bash
+cd "$REPO"
+git clone https://github.com/unitreerobotics/unitree_rl_mjlab.git \
+  reference_repos/unitree_rl_mjlab
+
+cd reference_repos/unitree_rl_mjlab
+git apply ../../patches/unitree_rl_mjlab/go2_scripted_controller.patch
+cd "$REPO"
+```
+
+Build, stage, and validate:
+
+```bash
+cd "$REPO"
+bash scripts/deploy/build_unitree_mjlab_runtime.sh all
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh activate
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh validate
+```
+
+Run controller and simulator in separate terminals:
+
+```bash
+# terminal 1
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh controller
+```
+
+```bash
+# terminal 2
+bash scripts/deploy/run_unitree_mjlab_sim_deploy.sh sim
+```
+
+Detailed notes are in `docs/UNITREE_MJLAB_RUNTIME_BUILD.md`.
+
+## Step 8: Read-Only DDS Probe
 
 Before any controller publishes `rt/lowcmd`, validate the transport with the
 read-only probe:
@@ -220,7 +265,7 @@ python scripts/deploy/probe_go2_readonly.py \
   --unitree-sdk-root /path/to/unitree_sdk2py
 ```
 
-## Step 8: Hardware Bring-Up
+## Step 9: Hardware Bring-Up
 
 Start the read-only monitor in one terminal:
 
