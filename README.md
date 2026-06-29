@@ -1,16 +1,25 @@
-# Go2 Lab Rough Terrain Locomotion
+<h1 align="center">Go2 Lab Rough Terrain Locomotion</h1>
+
+<p align="center">
+  Blind rough-terrain AsymPPO locomotion for Unitree Go2, trained in IsaacLab,
+  validated in MuJoCo, and deployed on real hardware.
+</p>
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=oOYZdeQDaec">
-    <img src="assets/hero_asymppo_deployment.svg" alt="Go2 blind rough-terrain AsymPPO deployment video" width="100%">
+    <img src="https://img.youtube.com/vi/oOYZdeQDaec/hqdefault.jpg" alt="Go2 blind rough-terrain AsymPPO deployment video" width="720">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=oOYZdeQDaec"><strong>Watch the real Go2 deployment video</strong></a>
+  <a href="https://www.youtube.com/watch?v=oOYZdeQDaec"><strong>Real hardware demo</strong></a>
+  ·
+  <a href="docs/REPRODUCTION.md">Reproduction</a>
+  ·
+  <a href="docs/RUN_COMMANDS.md">Run commands</a>
+  ·
+  <a href="docs/DEPLOYMENT.md">Deployment</a>
 </p>
-
-Go2 blind rough-terrain locomotion training and deployment stack.
 
 This repo intentionally publishes one active line:
 
