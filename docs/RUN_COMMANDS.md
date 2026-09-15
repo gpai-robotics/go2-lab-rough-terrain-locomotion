@@ -60,9 +60,6 @@ bash scripts/isaaclab_user.sh -p scripts/deploy/export_policy.py \
   --policy-kind blind_history_policy \
   --observation-groups policy,policy_history \
   --policy-history-length 100 \
-  --command-lin-vel-x -0.8 0.8 \
-  --command-lin-vel-y -0.3 0.3 \
-  --command-ang-vel-z -0.6 0.6 \
   --format torchscript \
   --format onnx
 ```
