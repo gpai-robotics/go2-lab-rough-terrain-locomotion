@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PYTHON_EXE="${MUJOCO_PYTHON:-/home/bhuvan/miniconda3/envs/rma-mujoco/bin/python}"
+PYTHON_EXE="${MUJOCO_PYTHON:-python3}"
 BUNDLE_DIR="${TERRAIN_BUNDLE:-${REPO_ROOT}/artifacts/exported/go2_terrain_locomotion_steps_v1_candidate}"
 OUTPUT_DIR="${REPO_ROOT}/artifacts/mujoco_eval"
 
